@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>食验室奶酪玉米片 - 视频预览</title>
+<style>
+  body { font-family: sans-serif; max-width: 420px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+  h2 { color: #f97316; }
+  video { width: 100%; border-radius: 12px; margin: 10px 0; }
+  .card { background: white; border-radius: 12px; padding: 16px; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+  button { background: #f97316; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; }
+  button:hover { background: #e86200; }
+  .script { background: #fff8f0; border-left: 3px solid #f97316; padding: 10px 14px; margin: 8px 0; font-size: 14px; line-height: 1.8; }
+</style>
+</head>
+<body>
+<h2>食验室厚厚奶酪玉米片</h2>
+
+<div class="card">
+  <h3>视频预览</h3>
+  <video id="video" src="uploads/final_demo.mp4" controls loop></video>
+  <p style="color:#666;font-size:13px">Wan2.2 T2V 生成 · 5秒 · 9:16 竖屏 · 720P · <b>已合成口播</b></p>
+</div>
+
+<div class="card">
+  <h3>口播音频</h3>
+  <audio id="audio" src="voiceover.mp3" controls></audio>
+  <p style="color:#666;font-size:13px">edge-tts · zh-CN-XiaoyiNeural · 种草博主女声</p>
+  <button onclick="playTogether()">同时播放视频+口播</button>
+</div>
+
+<div class="card">
+  <h3>完整口播文案（原始 15s 脚本）</h3>
+  <div class="script"><b>0-3s:</b> 这个奶酪玉米片你们一定要试试。</div>
+  <div class="script"><b>3-7s:</b> 奶酪味巨浓，不是那种粉味，是真的奶酪香。</div>
+  <div class="script"><b>7-12s:</b> 咸甜口，蓬蓬松松的，咬下去那一下特别酥。而且它是减油版，吃一袋嘴里不腻不反油。</div>
+  <div class="script"><b>12-15s:</b> 热量还不高，晚上吃也完全没负担。左下角有链接，去试试。</div>
+</div>
+
+<script>
+function playTogether() {
+  const v = document.getElementById('video');
+  const a = document.getElementById('audio');
+  v.currentTime = 0;
+  a.currentTime = 0;
+  v.play();
+  a.play();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+venv/
+.venv/
+
+# 本地数据（SQLite + ChromaDB）
+data/
+
+# 生成产物（视频、音频、模型）
+output/
+
+# 用户上传文件
+static/uploads/
+
+# Chrome 浏览器 Profile
+browser_profile/
+
+# Agent 运行时上下文
+.agent_context/
+
+# IDE
+.vscode/
+.idea/
+
+# 环境变量
+.env
+.env.local
+
+# 系统
+.DS_Store
+Thumbs.db
