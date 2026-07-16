@@ -21,6 +21,7 @@ class Settings:
     # 数据库路径
     SQLITE_PATH = os.getenv("SQLITE_PATH", "./data/snack_agent.db")
     CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma")
+    UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./static/uploads")
 
     # 服务
     HOST = os.getenv("HOST", "127.0.0.1")
