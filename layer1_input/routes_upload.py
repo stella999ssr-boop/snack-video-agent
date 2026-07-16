@@ -7,7 +7,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 
 router = APIRouter(prefix="/api/v1/upload", tags=["文件上传"])
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads")
+UPLOAD_DIR = os.getenv(
+    "UPLOAD_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads"),
+)
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 MAX_SIZE = 50 * 1024 * 1024  # 50MB
