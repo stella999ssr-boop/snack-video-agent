@@ -91,6 +91,10 @@ app.include_router(strategy_router)
 app.include_router(feedback_router)
 app.include_router(upload_router)
 
+# 用户上传文件单独挂载；生产环境可通过 UPLOAD_DIR 指向持久化磁盘。
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
 
 @app.get("/health")
 async def health():
