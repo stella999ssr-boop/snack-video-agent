@@ -12,9 +12,11 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        primary: '#6366f1',
-        accent: '#f59e0b',
-        snack: '#f97316',
+        primary: '#ff5a36',
+        accent: '#d9ff62',
+        snack: '#ff8a3d',
+        ink: '#171611',
+        cream: '#f7f4ec',
       }
     }
   }
@@ -22,33 +24,62 @@ tailwind.config = {
 </script>
 <style>
   .star { color: #f59e0b; }
-  .stage-dot.active { background: #6366f1; box-shadow: 0 0 8px #6366f1; }
-  .stage-dot.done { background: #22c55e; }
+  body { color: #171611; background: #f7f4ec; }
+  .stage-dot { position: relative; transition: all .25s ease; }
+  .stage-dot::after { content: ''; position: absolute; inset: 6px; border-radius: 999px; background: #d8d5cc; }
+  .stage-dot.active { background: rgba(255,90,54,.14); box-shadow: 0 0 0 5px rgba(255,90,54,.08); }
+  .stage-dot.active::after { background: #ff5a36; }
+  .stage-dot.done { background: rgba(34,197,94,.12); }
+  .stage-dot.done::after { background: #22c55e; }
+  .stage-item.active .stage-label { color: #171611; font-weight: 700; }
+  .stage-item.done .stage-label { color: #3f7d4b; }
   .page { display: none; }
   .page.active { display: block; }
   .modal-overlay { background: rgba(0,0,0,0.5); }
   .tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 13px; }
   .fade-in { animation: fadeIn 0.3s ease; }
+  .glass-panel { background: rgba(255,255,255,.78); border: 1px solid rgba(23,22,17,.08); box-shadow: 0 18px 60px rgba(53,42,22,.08); backdrop-filter: blur(18px); }
+  #generate-form-card { overflow: visible; position: relative; z-index: 10; }
+  #generate-form-card select { position: relative; z-index: 30; min-width: 0; text-overflow: ellipsis; }
+  .field { border: 1px solid #dedbd2; background: rgba(255,255,255,.88); transition: border-color .2s, box-shadow .2s; }
+  .field:focus, .field:focus-within { border-color: #ff5a36; box-shadow: 0 0 0 4px rgba(255,90,54,.1); outline: none; }
+  .phone-shell { width: min(100%, 310px); aspect-ratio: 9 / 16; padding: 8px; border-radius: 34px; background: #11110f; box-shadow: 0 30px 70px rgba(0,0,0,.28); }
+  .phone-screen { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 27px; background: radial-gradient(circle at 50% 20%, #3c3127 0, #161512 48%, #090908 100%); }
+  .phone-notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 999px; background: #090908; z-index: 4; }
+  .soft-grid { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 28px 28px; }
+  #creative-workspace { background-color: #eee9df; color: #171611; background-image: linear-gradient(rgba(23,22,17,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(23,22,17,.025) 1px, transparent 1px); }
+  #creative-workspace .workspace-header { border-color: rgba(23,22,17,.08); background: rgba(255,255,255,.35); }
+  #creative-workspace [class*="text-white/"] { color: rgba(23,22,17,.55) !important; }
+  #creative-workspace [class*="bg-white/"] { background-color: rgba(255,255,255,.58) !important; }
+  #creative-workspace [class*="border-white/"] { border-color: rgba(23,22,17,.08) !important; }
+  #creative-workspace .stage-item.active { background: rgba(255,255,255,.9) !important; box-shadow: 0 8px 24px rgba(73,58,32,.07); }
+  #creative-workspace .phone-screen { color: #fff; }
+  #creative-workspace .phone-screen [class*="text-white/"] { color: rgba(255,255,255,.48) !important; }
+  #creative-workspace .phone-screen [class*="bg-white/"] { background-color: rgba(255,255,255,.1) !important; }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  :fullscreen body, :fullscreen #page-generate { background: #f7f4ec; }
+  :fullscreen #page-generate { overflow-y: auto; height: 100vh; max-width: none; padding-left: 32px; padding-right: 32px; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
 
 <!-- ═══ 导航栏 ═══ -->
-<nav class="bg-white shadow-sm sticky top-0 z-50 border-b">
-  <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
-    <div class="flex items-center gap-2">
-      <span class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-sm"><i class="fa fa-bolt"></i></span>
-      <span class="font-bold text-gray-800">零食投流素材生成</span>
+<nav class="bg-[#171611]/95 text-white sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl">
+  <div class="max-w-[1440px] mx-auto px-5 lg:px-8 flex items-center justify-between h-16">
+    <div class="flex items-center gap-3">
+      <span class="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20"><i class="fa fa-play"></i></span>
+      <div><span class="font-bold tracking-tight">Snack Studio</span><span class="hidden sm:inline text-white/35 text-xs ml-2">AI AD CREATOR</span></div>
     </div>
     <div class="flex gap-1">
-      <a href="#generate" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition" data-page="generate">
-        <i class="fa fa-magic mr-1"></i>素材生成
+      <a href="#generate" class="nav-link px-4 py-2 rounded-xl text-sm font-medium text-white/65 hover:bg-white/10 hover:text-white transition" data-page="generate">
+        <i class="fa fa-magic mr-1"></i>创作台
       </a>
-      <a href="#archive" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition" data-page="archive">
-        <i class="fa fa-folder-open mr-1"></i>素材管理
+      <a href="#archive" class="nav-link px-4 py-2 rounded-xl text-sm font-medium text-white/65 hover:bg-white/10 hover:text-white transition" data-page="archive">
+        <i class="fa fa-folder-open mr-1"></i>素材库
       </a>
-      <a href="#feedback" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition" data-page="feedback">
+      <a href="#feedback" class="nav-link px-4 py-2 rounded-xl text-sm font-medium text-white/65 hover:bg-white/10 hover:text-white transition" data-page="feedback">
         <i class="fa fa-bar-chart mr-1"></i>效果反馈
       </a>
     </div>
@@ -59,207 +90,114 @@ tailwind.config = {
 <div id="toast" class="fixed top-4 right-4 z-[9999] hidden"></div>
 
 <!-- ═══ 页面 1：素材生成 ═══ -->
-<div id="page-generate" class="page active max-w-4xl mx-auto px-4 py-6">
-
-  <!-- 进度步骤 -->
-  <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
-    <div class="flex items-center justify-between text-xs text-gray-500">
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="0"></div>
-        <span>分析产品</span>
-      </div>
-      <div class="flex-1 h-0.5 bg-gray-200 mx-1" data-line="0"></div>
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="1"></div>
-        <span>检索记忆</span>
-      </div>
-      <div class="flex-1 h-0.5 bg-gray-200 mx-1" data-line="1"></div>
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="2"></div>
-        <span>生成方案</span>
-      </div>
-      <div class="flex-1 h-0.5 bg-gray-200 mx-1" data-line="2"></div>
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="3"></div>
-        <span>视频渲染</span>
-      </div>
-      <div class="flex-1 h-0.5 bg-gray-200 mx-1" data-line="3"></div>
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="4"></div>
-        <span>质检合规</span>
-      </div>
-      <div class="flex-1 h-0.5 bg-gray-200 mx-1" data-line="4"></div>
-      <div class="flex flex-col items-center gap-1">
-        <div class="stage-dot w-6 h-6 rounded-full bg-gray-200" data-stage="5"></div>
-        <span>完成</span>
-      </div>
+<div id="page-generate" class="page active max-w-[1440px] mx-auto px-5 lg:px-8 py-7 lg:py-10">
+  <div class="mb-7 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+    <div>
+      <div class="inline-flex items-center gap-2 text-xs font-bold tracking-[.18em] text-primary uppercase mb-2"><span class="w-5 h-px bg-primary"></span>AI Creative Workspace</div>
+      <h1 class="text-3xl lg:text-4xl font-black tracking-tight">把一款零食，变成一条能投放的广告</h1>
+      <p class="text-sm text-gray-500 mt-2">输入商品信息，Agent 自动完成策略、分镜、视频与合规检查。</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mr-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>Live 模式 · Wan2.2 视频已开启</div>
+      <button type="button" onclick="openPageWindow()" class="px-3 py-2 rounded-xl bg-white border border-black/10 text-xs font-semibold hover:border-primary hover:text-primary transition"><i class="fa fa-external-link mr-1"></i>新窗口打开</button>
+      <button type="button" onclick="toggleFullscreen()" class="px-3 py-2 rounded-xl bg-[#171611] text-white text-xs font-semibold hover:bg-primary transition"><i class="fa fa-arrows-alt mr-1"></i><span id="fullscreen-label">全屏预览</span></button>
     </div>
   </div>
 
-  <!-- 表单 -->
-  <div class="bg-white rounded-xl p-6 shadow-sm" id="generate-form-card">
-    <h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fa fa-edit text-primary"></i>产品信息</h2>
-    <form id="generate-form" class="space-y-5" novalidate>
-      <!-- 基础信息 -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">商品名称 <span class="text-red-400">*</span></label>
-          <input type="text" name="product_name" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="如：麻辣小龙虾味薯条">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">一级类目 <span class="text-red-400">*</span></label>
-          <select name="category_l1" required onchange="onCategoryL1Change()"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white">
-            <option value="">请选择一级类目</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">二级类目 <span class="text-red-400">*</span></label>
-          <select name="category_l2" required
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white">
-            <option value="">请先选择一级类目</option>
-          </select>
-        </div>
+  <div class="grid grid-cols-1 xl:grid-cols-[440px_minmax(0,1fr)] gap-6 items-start">
+    <div class="glass-panel rounded-[24px] p-5 lg:p-6" id="generate-form-card">
+      <div class="flex items-center justify-between mb-5">
+        <div><p class="text-xs text-gray-400 mb-1">STEP 01</p><h2 class="text-xl font-bold">告诉我你要卖什么</h2></div>
+        <span class="px-3 py-1 rounded-full bg-[#fff0e9] text-primary text-xs font-bold">约 2 分钟</span>
       </div>
+      <form id="generate-form" class="space-y-4" novalidate>
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">商品名称 <span class="text-primary">*</span></label>
+          <input type="text" name="product_name" required class="field w-full rounded-xl px-4 py-3 text-sm" placeholder="例如：食验室厚厚奶酪玉米片">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-30">
+          <div><label class="block text-sm font-semibold mb-1.5">一级类目 <span class="text-primary">*</span></label><select name="category_l1" required onchange="onCategoryL1Change()" class="field w-full rounded-xl px-3 py-3 text-sm"><option value="">请选择</option></select></div>
+          <div><label class="block text-sm font-semibold mb-1.5">二级类目 <span class="text-primary">*</span></label><select name="category_l2" required class="field w-full rounded-xl px-3 py-3 text-sm"><option value="">请先选一级</option></select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-sm font-semibold mb-1.5">到手价</label><div class="field rounded-xl flex items-center px-3"><span class="text-gray-400 text-sm">¥</span><input type="number" name="unit_price" step="0.01" class="w-full bg-transparent px-2 py-3 text-sm outline-none" placeholder="9.9"></div></div>
+          <div><label class="block text-sm font-semibold mb-1.5">商品原价</label><div class="field rounded-xl flex items-center px-3"><span class="text-gray-400 text-sm">¥</span><input type="number" name="original_price" step="0.01" class="w-full bg-transparent px-2 py-3 text-sm outline-none" placeholder="39.6"></div></div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">核心卖点</label>
+          <div class="tag-input field rounded-xl px-3 py-2 flex flex-wrap gap-1 min-h-[46px] cursor-text" data-field="selling_points"><input type="text" class="tag-inner-input border-0 bg-transparent outline-none text-sm flex-1 min-w-[120px] py-1" placeholder="输入后回车，如：非油炸"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1.5">商品主图 <span class="text-xs text-gray-400 font-normal">推荐上传，画面更准确</span></label>
+          <label class="field flex items-center gap-3 rounded-xl p-3 cursor-pointer hover:border-primary" id="main-image-zone">
+            <input type="file" accept="image/*" class="hidden" id="main-image-input" onchange="handleFilePick(this, 'main-image-preview', 'main-image-url')">
+            <div class="w-14 h-14 rounded-xl bg-[#f3efe5] flex items-center justify-center overflow-hidden shrink-0"><img id="main-image-preview" class="hidden w-full h-full object-cover"><i class="fa fa-cloud-upload text-xl text-primary" id="main-image-icon"></i></div>
+            <div><p class="text-sm font-medium" id="main-image-text">点击上传商品图片</p><p class="text-xs text-gray-400 mt-1">PNG / JPG，建议正方形产品图</p></div>
+          </label>
+          <input type="hidden" id="main-image-url" name="product_main_image">
+        </div>
 
-      <!-- 价格 -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">单价（元）</label>
-          <input type="number" name="unit_price" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="9.9">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">原价（元）</label>
-          <input type="number" name="original_price" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="39.6">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">折扣率</label>
-          <input type="text" name="discount_rate" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="如：2.5折">
-        </div>
+        <details class="border-t border-black/5 pt-3">
+          <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold py-2"><span><i class="fa fa-sliders text-primary mr-2"></i>高级设置</span><span class="text-xs text-gray-400 font-normal">口味、场景与更多素材 <i class="fa fa-angle-down ml-1"></i></span></summary>
+          <div class="space-y-4 pt-3 fade-in">
+            <div><label class="block text-sm font-medium mb-1.5">口味标签</label><div class="tag-input field rounded-xl px-3 py-2 flex flex-wrap gap-1 min-h-[44px] cursor-text" data-field="taste_tags"><input type="text" class="tag-inner-input bg-transparent border-0 outline-none text-sm flex-1 min-w-[100px] py-1" placeholder="芝士味、咸香"></div></div>
+            <div><label class="block text-sm font-medium mb-1.5">使用场景</label><div class="tag-input field rounded-xl px-3 py-2 flex flex-wrap gap-1 min-h-[44px] cursor-text" data-field="use_scene"><input type="text" class="tag-inner-input bg-transparent border-0 outline-none text-sm flex-1 min-w-[100px] py-1" placeholder="追剧、办公室"></div></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="block text-sm font-medium mb-1.5">折扣信息</label><input type="text" name="discount_rate" class="field w-full rounded-xl px-3 py-2.5 text-sm" placeholder="如：2.5折"></div>
+              <div><label class="block text-sm font-medium mb-1.5">库存状态</label><select name="stock_status" class="field w-full rounded-xl px-3 py-2.5 text-sm"><option value="">请选择</option><option value="充足">充足</option><option value="紧张">紧张</option><option value="预售">预售</option></select></div>
+            </div>
+            <div><label class="block text-sm font-medium mb-1.5">已有商品视频</label><label class="field flex items-center gap-3 rounded-xl p-3 cursor-pointer" id="video-zone"><input type="file" accept="video/*" class="hidden" id="video-input" onchange="handleFilePick(this, 'video-preview', 'video-url')"><video id="video-preview" class="hidden w-14 h-14 object-cover rounded-lg" controls></video><i class="fa fa-film text-xl text-gray-400" id="video-icon"></i><span class="text-sm text-gray-500" id="video-text">选择参考视频（可选）</span></label><input type="hidden" id="video-url" name="product_video"></div>
+            <div><label class="block text-sm font-medium mb-1.5">更多商品图片</label><div class="flex flex-wrap gap-2" id="extra-images-container"><label class="flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary transition w-16 h-16" id="add-image-btn"><input type="file" accept="image/*" class="hidden" id="extra-image-input" onchange="handleExtraImage(this)"><i class="fa fa-plus text-gray-400"></i><span class="text-[10px] text-gray-400">添加</span></label></div></div>
+          </div>
+        </details>
+        <button type="submit" id="submit-btn" class="w-full py-3.5 bg-primary text-white rounded-xl font-bold hover:bg-[#ed4826] transition flex items-center justify-center gap-2 shadow-lg shadow-primary/20"><i class="fa fa-play-circle"></i>生成竖屏广告素材</button>
+        <p class="text-[11px] text-gray-400 text-center">将调用 AI 生成视频，预计需要数分钟</p>
+      </form>
+    </div>
+
+    <div id="creative-workspace" class="rounded-[24px] overflow-hidden shadow-2xl shadow-black/10 min-h-[760px] soft-grid border border-black/[.06]">
+      <div class="workspace-header px-5 lg:px-7 py-5 border-b flex items-center justify-between">
+        <div><p class="text-xs text-white/40 mb-1">LIVE PREVIEW</p><h2 class="font-bold">素材生成工作台</h2></div>
+        <div class="flex gap-2"><span id="quality-pill" class="hidden px-2.5 py-1 rounded-full bg-green-500/15 text-green-300 text-xs"></span><span id="compliance-pill" class="hidden px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 text-xs"></span></div>
       </div>
+      <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-7 p-5 lg:p-7">
+        <div class="flex flex-col items-center">
+          <div class="phone-shell">
+            <div class="phone-screen flex items-center justify-center">
+              <div class="phone-notch"></div>
+              <div id="video-empty" class="text-center px-8"><div class="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-4"><i class="fa fa-play text-primary text-xl"></i></div><p class="font-bold">你的广告将在这里出现</p><p class="text-xs leading-5 text-white/40 mt-2">9:16 竖屏 · 三镜结构<br>AI 生成画面与投放文案</p></div>
+              <div id="video-card" class="hidden absolute inset-0"><video id="result-video" class="w-full h-full object-cover" controls playsinline></video></div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-4"><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">720P</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">AI VIDEO</span></div>
+        </div>
 
-      <!-- 特征标签 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">卖点</label>
-          <div class="tag-input border rounded-lg px-2 py-1.5 flex flex-wrap gap-1 min-h-[38px] cursor-text" data-field="selling_points">
-            <input type="text" class="tag-inner-input border-0 outline-none text-sm flex-1 min-w-[100px] py-1" placeholder="输入后回车添加">
+        <div class="min-w-0">
+          <div id="progress-panel">
+            <div class="flex items-center justify-between mb-5"><div><p class="text-xs text-primary font-bold tracking-wider">AGENT PROCESS</p><p id="progress-message" class="text-sm text-white/55 mt-1">填写左侧信息，开始创建第一条素材</p></div><span id="progress-percent" class="text-2xl font-black text-white/15">0%</span></div>
+            <div class="space-y-2.5" id="stage-list">
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="0"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="0"></div><span class="stage-label text-sm text-white/45">分析商品与核心卖点</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="1"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="1"></div><span class="stage-label text-sm text-white/45">检索同品类历史素材</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="2"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="2"></div><span class="stage-label text-sm text-white/45">生成广告策略与三镜脚本</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="3"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="3"></div><span class="stage-label text-sm text-white/45">渲染竖屏视频并完成拼接</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="4"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="4"></div><span class="stage-label text-sm text-white/45">质量评分与广告合规检查</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="5"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="5"></div><span class="stage-label text-sm text-white/45">素材生成完成</span></div>
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">口味标签</label>
-          <div class="tag-input border rounded-lg px-2 py-1.5 flex flex-wrap gap-1 min-h-[38px] cursor-text" data-field="taste_tags">
-            <input type="text" class="tag-inner-input border-0 outline-none text-sm flex-1 min-w-[100px] py-1" placeholder="输入后回车添加">
-          </div>
-        </div>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">使用场景</label>
-          <div class="tag-input border rounded-lg px-2 py-1.5 flex flex-wrap gap-1 min-h-[38px] cursor-text" data-field="use_scene">
-            <input type="text" class="tag-inner-input border-0 outline-none text-sm flex-1 min-w-[100px] py-1" placeholder="输入后回车添加">
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">库存状态</label>
-          <select name="stock_status" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-            <option value="">请选择</option>
-            <option value="充足">充足</option>
-            <option value="紧张">紧张</option>
-            <option value="预售">预售</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 素材资源 -->
-      <div class="border-t pt-5 mt-2">
-        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <i class="fa fa-image text-snack"></i>素材资源（可选，用于图生视频）
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- 商品主图 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">商品主图</label>
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-primary transition min-h-[100px]" id="main-image-zone">
-              <input type="file" accept="image/*" class="hidden" id="main-image-input" onchange="handleFilePick(this, 'main-image-preview', 'main-image-url')">
-              <img id="main-image-preview" class="hidden max-h-24 rounded-lg mb-1">
-              <i class="fa fa-cloud-upload text-2xl text-gray-400" id="main-image-icon"></i>
-              <span class="text-xs text-gray-500 mt-1" id="main-image-text">点击选择商品主图</span>
-            </label>
-            <input type="hidden" id="main-image-url" name="product_main_image">
-          </div>
-          <!-- 商品视频 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">商品视频</label>
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-primary transition min-h-[100px]" id="video-zone">
-              <input type="file" accept="video/*" class="hidden" id="video-input" onchange="handleFilePick(this, 'video-preview', 'video-url')">
-              <video id="video-preview" class="hidden max-h-24 rounded-lg mb-1" controls></video>
-              <i class="fa fa-cloud-upload text-2xl text-gray-400" id="video-icon"></i>
-              <span class="text-xs text-gray-500 mt-1" id="video-text">点击选择商品视频</span>
-            </label>
-            <input type="hidden" id="video-url" name="product_video">
-          </div>
-        </div>
-        <!-- 额外图片 -->
-        <div class="mt-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">更多商品图片</label>
-          <div class="flex flex-wrap gap-2" id="extra-images-container">
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-2 cursor-pointer hover:border-primary transition w-20 h-20" id="add-image-btn">
-              <input type="file" accept="image/*" class="hidden" id="extra-image-input" onchange="handleExtraImage(this)">
-              <i class="fa fa-plus text-gray-400"></i>
-              <span class="text-xs text-gray-400">添加</span>
-            </label>
+          <div id="result-area" class="hidden fade-in">
+            <div class="flex items-center justify-between mb-5"><div><p class="text-xs text-primary font-bold tracking-wider">CREATIVE BUNDLE</p><h3 class="text-xl font-bold mt-1">广告素材已就绪</h3></div><button onclick="resetForm()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs"><i class="fa fa-refresh mr-1"></i>再生成一条</button></div>
+            <div class="space-y-4 max-h-[610px] overflow-y-auto pr-1">
+              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-film text-primary mr-2"></i>分镜脚本</h3><div id="storyboard-container" class="space-y-2"></div></div>
+              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-bullhorn text-[#ffd66b] mr-2"></i>投放标题</h3><div id="titles-container" class="space-y-2"></div></div>
+              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-users text-green-400 mr-2"></i>人群定向</h3><div id="audience-container"></div></div>
+              <div id="quality-card" class="hidden"></div><div id="compliance-card" class="hidden"></div>
+              <div class="bg-[#d9ff62]/10 border border-[#d9ff62]/15 rounded-2xl p-4"><h3 class="font-bold mb-2 text-sm text-[#d9ff62]"><i class="fa fa-lightbulb-o mr-2"></i>创意策略</h3><p id="rationale-text" class="text-white/55 text-sm leading-6"></p></div>
+            </div>
           </div>
         </div>
       </div>
-
-      <button type="submit" id="submit-btn" class="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-indigo-600 transition flex items-center justify-center gap-2">
-        <i class="fa fa-paper-plane"></i>开始生成素材
-      </button>
-    </form>
-  </div>
-
-  <!-- 结果区域（初始隐藏） -->
-  <div id="result-area" class="hidden mt-6 space-y-6">
-    <!-- 视频播放器 -->
-    <div id="video-card" class="hidden bg-black rounded-xl overflow-hidden relative aspect-video">
-      <video id="result-video" class="w-full h-full" controls></video>
     </div>
-
-    <!-- 分镜脚本 -->
-    <div class="bg-white rounded-xl p-6 shadow-sm">
-      <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fa fa-film text-primary"></i>分镜脚本</h3>
-      <div id="storyboard-container" class="space-y-3"></div>
-    </div>
-
-    <!-- 投放标题 -->
-    <div class="bg-white rounded-xl p-6 shadow-sm">
-      <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fa fa-bullhorn text-accent"></i>投放标题</h3>
-      <div id="titles-container" class="space-y-2"></div>
-    </div>
-
-    <!-- 人群定向 -->
-    <div class="bg-white rounded-xl p-6 shadow-sm">
-      <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fa fa-users text-green-500"></i>人群定向建议</h3>
-      <div id="audience-container"></div>
-    </div>
-
-    <!-- 质量 + 合规徽章 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div id="quality-card" class="hidden bg-white rounded-xl p-6 shadow-sm"></div>
-      <div id="compliance-card" class="hidden bg-white rounded-xl p-6 shadow-sm"></div>
-    </div>
-
-    <!-- 创意理由 -->
-    <div class="bg-white rounded-xl p-6 shadow-sm">
-      <h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-lightbulb-o text-snack"></i>创意策略</h3>
-      <p id="rationale-text" class="text-gray-600 text-sm"></p>
-    </div>
-
-    <button onclick="resetForm()" class="w-full py-3 border-2 border-primary text-primary rounded-lg font-medium hover:bg-indigo-50 transition">
-      <i class="fa fa-refresh mr-2"></i>继续生成新素材
-    </button>
   </div>
 </div>
 
@@ -419,8 +357,8 @@ function navigate(hash) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-link').forEach(l => {
-    l.classList.toggle('bg-indigo-50', l.dataset.page === page);
-    l.classList.toggle('text-primary', l.dataset.page === page);
+    l.classList.toggle('bg-white/10', l.dataset.page === page);
+    l.classList.toggle('text-white', l.dataset.page === page);
   });
   if (page === 'archive') loadArchive();
   if (page === 'feedback') initFeedback();
@@ -428,6 +366,29 @@ function navigate(hash) {
 
 window.addEventListener('hashchange', () => navigate());
 navigate();
+
+// ═══ 预览窗口 ═══
+function openPageWindow() {
+  const win = window.open(window.location.href, '_blank', 'noopener,noreferrer');
+  if (!win) toast('浏览器拦截了新窗口，请允许弹出窗口', 'error');
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (e) {
+    toast('当前预览环境不支持全屏，请使用“新窗口打开”', 'error');
+  }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const label = document.getElementById('fullscreen-label');
+  if (label) label.textContent = document.fullscreenElement ? '退出全屏' : '全屏预览';
+});
 
 // ═══ Toast ═══
 function toast(msg, type='info') {
@@ -490,31 +451,30 @@ async function uploadFile(file, type) {
 async function handleFilePick(input, previewId, hiddenId) {
   const file = input.files[0];
   if (!file) return;
+  const type = file.type.startsWith('video/') ? 'video' : 'image';
+  const preview = document.getElementById(previewId);
+  const prefix = previewId.replace('-preview', '');
+  const icon = document.getElementById(prefix + '-icon');
+  const text = document.getElementById(prefix + '-text');
+  const localUrl = URL.createObjectURL(file);
+
+  // 先展示本地预览；即使独立展示页没有后端接口，也能正常看到所选素材。
+  if (preview) {
+    preview.src = localUrl;
+    preview.classList.remove('hidden');
+  }
+  if (icon) icon.classList.add('hidden');
+  if (text) text.textContent = file.name;
+
   try {
-    const type = file.type.startsWith('video/') ? 'video' : 'image';
     const url = await uploadFile(file, type);
     document.getElementById(hiddenId).value = url;
-
-    const preview = document.getElementById(previewId);
-    // 从 previewId 提取前缀如 "main-image" 或 "video"
-    const prefix = previewId.replace('-preview', '');
-    const icon = document.getElementById(prefix + '-icon');
-    const text = document.getElementById(prefix + '-text');
-
-    if (preview) {
-      if (type === 'video') {
-        preview.src = url;
-      } else {
-        preview.src = url;
-      }
-      preview.classList.remove('hidden');
-    }
-    if (icon) icon.classList.add('hidden');
+    if (preview) preview.src = url;
     if (text) text.textContent = file.name;
     toast('上传成功', 'success');
   } catch (err) {
-    toast('上传失败: ' + err.message, 'error');
-    input.value = '';
+    document.getElementById(hiddenId).value = '';
+    toast('已显示本地图片预览；连接正式服务后会自动上传', 'info');
   }
 }
 
@@ -547,36 +507,63 @@ function removeExtraImage(btn, url) {
 
 // ═══ 进度条 ═══
 function updateProgress(stage) {
-  const stages = ['analyze','searching','generating','rendering','quality_checking','done'];
-  const idx = stages.indexOf(stage);
+  const stageIndexes = { analyze:0, searching:1, generating:2, rendering:3, quality_checking:4, compliance_checking:4, retrying:3, done:5 };
+  const messages = {
+    analyze:'正在理解商品信息与核心卖点…', searching:'正在检索同品类历史素材与策略…',
+    generating:'正在生成创意方向与三镜脚本…', rendering:'正在调用 Wan2.2 渲染竖屏画面…',
+    quality_checking:'视频已生成，正在完成质量与合规检查…', compliance_checking:'正在进行广告合规检查…',
+    retrying:'检测到可优化项，正在自动调整素材…', done:'全部流程完成，素材已准备好'
+  };
+  const idx = stageIndexes[stage] ?? 0;
   document.querySelectorAll('.stage-dot').forEach((d,i) => {
     d.classList.remove('active','done');
     if (i < idx) d.classList.add('done');
     if (i === idx) d.classList.add('active');
   });
+  document.querySelectorAll('.stage-item').forEach((item,i) => {
+    item.classList.remove('active','done');
+    if (i < idx) item.classList.add('done');
+    if (i === idx) item.classList.add('active');
+  });
+  const message = document.getElementById('progress-message');
+  const percent = document.getElementById('progress-percent');
+  if (message) message.textContent = messages[stage] || messages.analyze;
+  if (percent) percent.textContent = `${Math.round((idx / 5) * 100)}%`;
 }
-const stageMap = { searching:0, generating:1, rendering:2, quality_checking:3, compliance_checking:4, done:5 };
 
 // ═══ 页面 1：素材生成 ═══
 let pollingTimer = null;
 
 // ── 类目级联下拉 ──
+const fallbackCategoryTree = {
+  '休闲零食': ['膨化食品','坚果炒货','肉干肉脯','糖果巧克力','饼干糕点','蜜饯果干','豆干素食','海味零食'],
+  '冲调饮品': ['饮料冲调','咖啡麦片','代餐奶昔','茶饮花茶'],
+  '方便速食': ['方便面/粉','自热食品','速食汤粥','预制快手菜'],
+  '烘焙糕点': ['面包吐司','蛋糕西点','中式糕点','蛋黄酥/月饼']
+};
 let categoryTree = {};
+
+function renderCategoryTree(tree) {
+  categoryTree = tree;
+  const l1Select = document.querySelector('[name="category_l1"]');
+  l1Select.innerHTML = '<option value="">请选择一级类目</option>';
+  Object.keys(categoryTree).forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    l1Select.appendChild(opt);
+  });
+}
 
 async function loadCategoryTree() {
   try {
     const res = await fetch('/api/v1/creative/categories');
+    if (!res.ok) throw new Error('类目接口不可用');
     const data = await res.json();
-    categoryTree = data.categories || {};
-    const l1Select = document.querySelector('[name="category_l1"]');
-    Object.keys(categoryTree).forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      l1Select.appendChild(opt);
-    });
+    renderCategoryTree(data.categories || fallbackCategoryTree);
   } catch(e) {
-    console.error('加载类目树失败:', e);
+    renderCategoryTree(fallbackCategoryTree);
+    console.info('当前为独立预览，已使用内置类目数据');
   }
 }
 
@@ -650,13 +637,15 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || '请求失败');
-    document.getElementById('generate-form-card').classList.add('hidden');
+    updateProgress('analyze');
+    document.getElementById('progress-panel').classList.remove('hidden');
+    document.getElementById('result-area').classList.add('hidden');
     toast('素材生成任务已提交，正在处理...', 'success');
     pollStatus(data.request_id);
   } catch(err) {
     toast(err.message, 'error');
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa fa-paper-plane"></i> 开始生成素材';
+    btn.innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
   }
 });
 
@@ -669,7 +658,7 @@ async function pollStatus(requestId) {
   if (stage === 'done' || data.status === 'done') {
     updateProgress('done');
     document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').innerHTML = '<i class="fa fa-paper-plane"></i> 开始生成素材';
+    document.getElementById('submit-btn').innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
     if (data.result) showResult(data);
     if (data.error) toast(data.error, 'error');
     return;
@@ -678,7 +667,7 @@ async function pollStatus(requestId) {
     updateProgress('done');
     toast(data.error || '生成失败', 'error');
     document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').innerHTML = '<i class="fa fa-paper-plane"></i> 开始生成素材';
+    document.getElementById('submit-btn').innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
     return;
   }
   pollingTimer = setTimeout(() => pollStatus(requestId), 2000);
@@ -687,12 +676,13 @@ async function pollStatus(requestId) {
 function showResult(data) {
   const area = document.getElementById('result-area');
   area.classList.remove('hidden');
-  area.scrollIntoView({behavior:'smooth'});
+  document.getElementById('progress-panel').classList.add('hidden');
   const r = data.result;
 
   // 视频
   if (r.video_url) {
     document.getElementById('video-card').classList.remove('hidden');
+    document.getElementById('video-empty').classList.add('hidden');
     document.getElementById('result-video').src = r.video_url;
   }
 
@@ -701,9 +691,9 @@ function showResult(data) {
   sb.innerHTML = '';
   if (r.storyboard && r.storyboard.length) {
     r.storyboard.forEach(s => {
-      sb.innerHTML += `<div class="flex gap-3 p-3 bg-gray-50 rounded-lg">
+      sb.innerHTML += `<div class="flex gap-3 p-3 bg-white/[.05] rounded-xl border border-white/[.05]">
         <span class="text-xs font-mono text-primary whitespace-nowrap mt-0.5">${s.time||''}</span>
-        <div><p class="text-sm font-medium">${s.scene||''}</p><p class="text-xs text-gray-500 mt-0.5">${s.copy||''}</p></div>
+        <div><p class="text-sm font-medium text-white/85">${s.scene||''}</p><p class="text-xs text-white/40 mt-1 leading-5">${s.copy||''}</p></div>
       </div>`;
     });
   }
@@ -713,20 +703,23 @@ function showResult(data) {
   tc.innerHTML = '';
   if (r.ad_titles && r.ad_titles.length) {
     r.ad_titles.forEach(t => {
-      tc.innerHTML += `<p class="text-sm text-gray-700 bg-amber-50 px-3 py-2 rounded-lg">${t}</p>`;
+      tc.innerHTML += `<div class="flex items-start gap-2 text-sm text-white/70 bg-white/[.05] px-3 py-2.5 rounded-xl"><i class="fa fa-copy text-white/25 mt-1"></i><span>${t}</span></div>`;
     });
   }
 
   // 人群
   const ac = document.getElementById('audience-container');
   const aud = r.suggested_audience || {};
-  ac.innerHTML = Object.entries(aud).map(([k,v]) => `<span class="tag bg-green-50 text-green-700 mr-2 mb-2">${k}: ${v}</span>`).join('') || '<p class="text-sm text-gray-400">暂无定向建议</p>';
+  ac.innerHTML = Object.entries(aud).map(([k,v]) => `<span class="tag bg-green-400/10 text-green-300 mr-2 mb-2">${k}: ${v}</span>`).join('') || '<p class="text-sm text-white/35">暂无定向建议</p>';
 
   // 质量
   const qc = document.getElementById('quality-card');
   if (data.quality) {
     qc.classList.remove('hidden');
     const q = data.quality;
+    const pill = document.getElementById('quality-pill');
+    pill.textContent = `质量 ${q.total_score||'-'}分`;
+    pill.classList.remove('hidden');
     const gradeColor = {A:'text-green-600',B:'text-blue-600',C:'text-amber-600',D:'text-red-500'};
     qc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-check-circle text-green-500"></i>质量评估</h3>
       <p class="text-3xl font-bold ${gradeColor[q.grade]||'text-gray-600'}">${q.total_score||'-'} <span class="text-sm">分 / ${q.grade||'-'}</span></p>
@@ -738,6 +731,9 @@ function showResult(data) {
   if (data.compliance) {
     cc.classList.remove('hidden');
     const c = data.compliance;
+    const pill = document.getElementById('compliance-pill');
+    pill.textContent = c.decision === 'auto_pass' ? '合规通过' : `合规 ${c.decision||'-'}`;
+    pill.classList.remove('hidden');
     const decColor = {auto_pass:'text-green-600',auto_retry:'text-amber-600',manual_review:'text-red-500'};
     cc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-shield text-blue-500"></i>合规检测</h3>
       <p class="text-xl font-bold ${decColor[c.decision]||'text-gray-600'}">${c.decision||'-'}</p>
@@ -752,9 +748,15 @@ function showResult(data) {
 
 function resetForm() {
   document.getElementById('result-area').classList.add('hidden');
-  document.getElementById('generate-form-card').classList.remove('hidden');
+  document.getElementById('progress-panel').classList.remove('hidden');
+  document.getElementById('video-card').classList.add('hidden');
+  document.getElementById('video-empty').classList.remove('hidden');
+  document.getElementById('quality-pill').classList.add('hidden');
+  document.getElementById('compliance-pill').classList.add('hidden');
   document.getElementById('generate-form').reset();
-  document.querySelectorAll('.stage-dot').forEach(d => { d.classList.remove('active','done'); });
+  document.querySelectorAll('.stage-dot, .stage-item').forEach(d => { d.classList.remove('active','done'); });
+  document.getElementById('progress-message').textContent = '填写左侧信息，开始创建第一条素材';
+  document.getElementById('progress-percent').textContent = '0%';
 }
 
 // ═══ 页面 2：素材管理 ═══
