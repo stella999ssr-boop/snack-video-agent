@@ -12,53 +12,56 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        primary: '#ff5a36',
-        accent: '#d9ff62',
-        snack: '#ff8a3d',
-        ink: '#171611',
-        cream: '#f7f4ec',
+        primary: '#557760',
+        accent: '#557760',
+        snack: '#557760',
+        ink: '#171A17',
+        cream: '#FFFFFF',
       }
     }
   }
 }
 </script>
 <style>
-  .star { color: #f59e0b; }
-  body { color: #171611; background: #f7f4ec; }
+  .star { color: #557760; }
+  body { color: #171A17; background: #FFFFFF; }
   .stage-dot { position: relative; transition: all .25s ease; }
-  .stage-dot::after { content: ''; position: absolute; inset: 6px; border-radius: 999px; background: #d8d5cc; }
-  .stage-dot.active { background: rgba(255,90,54,.14); box-shadow: 0 0 0 5px rgba(255,90,54,.08); }
-  .stage-dot.active::after { background: #ff5a36; }
-  .stage-dot.done { background: rgba(34,197,94,.12); }
-  .stage-dot.done::after { background: #22c55e; }
-  .stage-item.active .stage-label { color: #171611; font-weight: 700; }
-  .stage-item.done .stage-label { color: #3f7d4b; }
+  .stage-dot::after { content: ''; position: absolute; inset: 6px; border-radius: 999px; background: #E7E9E4; }
+  .stage-dot.active { background: rgba(85,119,96,.14); box-shadow: 0 0 0 5px rgba(85,119,96,.08); }
+  .stage-dot.active::after { background: #557760; }
+  .stage-dot.done { background: rgba(85,119,96,.12); }
+  .stage-dot.done::after { background: #557760; }
+  .stage-item.active .stage-label { color: #171A17; font-weight: 700; }
+  .stage-item.done .stage-label { color: #557760; }
   .page { display: none; }
   .page.active { display: block; }
   .modal-overlay { background: rgba(0,0,0,0.5); }
   .tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 13px; }
+  .audience-tag { background: rgba(85,119,96,.12); color: #171A17; border: 1px solid rgba(85,119,96,.24); font-weight: 600; }
+  #stage-list { transition: box-shadow .25s ease; }
+  #stage-list.progress-focus { border-radius: 16px; box-shadow: 0 0 0 3px rgba(85,119,96,.22); }
   .fade-in { animation: fadeIn 0.3s ease; }
-  .glass-panel { background: rgba(255,255,255,.78); border: 1px solid rgba(23,22,17,.08); box-shadow: 0 18px 60px rgba(53,42,22,.08); backdrop-filter: blur(18px); }
+  .glass-panel { background: rgba(255,255,255,.78); border: 1px solid rgba(23,26,23,.08); box-shadow: 0 18px 60px rgba(23,26,23,.08); backdrop-filter: blur(18px); }
   #generate-form-card { overflow: visible; position: relative; z-index: 10; }
   #generate-form-card select { position: relative; z-index: 30; min-width: 0; text-overflow: ellipsis; }
-  .field { border: 1px solid #dedbd2; background: rgba(255,255,255,.88); transition: border-color .2s, box-shadow .2s; }
-  .field:focus, .field:focus-within { border-color: #ff5a36; box-shadow: 0 0 0 4px rgba(255,90,54,.1); outline: none; }
-  .phone-shell { width: min(100%, 310px); aspect-ratio: 9 / 16; padding: 8px; border-radius: 34px; background: #11110f; box-shadow: 0 30px 70px rgba(0,0,0,.28); }
-  .phone-screen { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 27px; background: radial-gradient(circle at 50% 20%, #3c3127 0, #161512 48%, #090908 100%); }
-  .phone-notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 999px; background: #090908; z-index: 4; }
+  .field { border: 1px solid #E7E9E4; background: rgba(255,255,255,.88); transition: border-color .2s, box-shadow .2s; }
+  .field:focus, .field:focus-within { border-color: #557760; box-shadow: 0 0 0 4px rgba(85,119,96,.1); outline: none; }
+  .phone-shell { width: min(100%, 310px); aspect-ratio: 9 / 16; padding: 8px; border-radius: 34px; background: #171A17; box-shadow: 0 30px 70px rgba(0,0,0,.28); }
+  .phone-screen { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 27px; background: radial-gradient(circle at 50% 20%, #171A17 0, #171A17 48%, #171A17 100%); }
+  .phone-notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 999px; background: #171A17; z-index: 4; }
   .soft-grid { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 28px 28px; }
-  #creative-workspace { background-color: #eee9df; color: #171611; background-image: linear-gradient(rgba(23,22,17,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(23,22,17,.025) 1px, transparent 1px); }
-  #creative-workspace .workspace-header { border-color: rgba(23,22,17,.08); background: rgba(255,255,255,.35); }
-  #creative-workspace [class*="text-white/"] { color: rgba(23,22,17,.55) !important; }
+  #creative-workspace { background-color: #E7E9E4; color: #171A17; background-image: linear-gradient(rgba(23,26,23,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(23,26,23,.025) 1px, transparent 1px); }
+  #creative-workspace .workspace-header { border-color: rgba(23,26,23,.08); background: rgba(255,255,255,.35); }
+  #creative-workspace [class*="text-white/"] { color: rgba(23,26,23,.55) !important; }
   #creative-workspace [class*="bg-white/"] { background-color: rgba(255,255,255,.58) !important; }
-  #creative-workspace [class*="border-white/"] { border-color: rgba(23,22,17,.08) !important; }
-  #creative-workspace .stage-item.active { background: rgba(255,255,255,.9) !important; box-shadow: 0 8px 24px rgba(73,58,32,.07); }
-  #creative-workspace .phone-screen { color: #fff; }
+  #creative-workspace [class*="border-white/"] { border-color: rgba(23,26,23,.08) !important; }
+  #creative-workspace .stage-item.active { background: rgba(255,255,255,.9) !important; box-shadow: 0 8px 24px rgba(23,26,23,.07); }
+  #creative-workspace .phone-screen { color: #FFFFFF; }
   #creative-workspace .phone-screen [class*="text-white/"] { color: rgba(255,255,255,.48) !important; }
   #creative-workspace .phone-screen [class*="bg-white/"] { background-color: rgba(255,255,255,.1) !important; }
   details > summary { list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
-  :fullscreen body, :fullscreen #page-generate { background: #f7f4ec; }
+  :fullscreen body, :fullscreen #page-generate { background: #FFFFFF; }
   :fullscreen #page-generate { overflow-y: auto; height: 100vh; max-width: none; padding-left: 32px; padding-right: 32px; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -66,7 +69,7 @@ tailwind.config = {
 <body class="min-h-screen">
 
 <!-- ═══ 导航栏 ═══ -->
-<nav class="bg-[#171611]/95 text-white sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl">
+<nav class="bg-ink text-white sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl">
   <div class="max-w-[1440px] mx-auto px-5 lg:px-8 flex items-center justify-between h-16">
     <div class="flex items-center gap-3">
       <span class="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20"><i class="fa fa-play"></i></span>
@@ -98,9 +101,9 @@ tailwind.config = {
       <p class="text-sm text-gray-500 mt-2">输入商品信息，Agent 自动完成策略、分镜、视频与合规检查。</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <div class="flex items-center gap-2 text-xs text-gray-500 mr-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>Live 模式 · Wan2.2 视频已开启</div>
+      <div class="flex items-center gap-2 text-xs text-gray-500 mr-2"><span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>Live 模式 · Wan2.2 视频已开启</div>
       <button type="button" onclick="openPageWindow()" class="px-3 py-2 rounded-xl bg-white border border-black/10 text-xs font-semibold hover:border-primary hover:text-primary transition"><i class="fa fa-external-link mr-1"></i>新窗口打开</button>
-      <button type="button" onclick="toggleFullscreen()" class="px-3 py-2 rounded-xl bg-[#171611] text-white text-xs font-semibold hover:bg-primary transition"><i class="fa fa-arrows-alt mr-1"></i><span id="fullscreen-label">全屏预览</span></button>
+      <button type="button" onclick="toggleFullscreen()" class="px-3 py-2 rounded-xl bg-ink text-white text-xs font-semibold hover:bg-primary transition"><i class="fa fa-arrows-alt mr-1"></i><span id="fullscreen-label">全屏预览</span></button>
     </div>
   </div>
 
@@ -108,7 +111,7 @@ tailwind.config = {
     <div class="glass-panel rounded-[24px] p-5 lg:p-6" id="generate-form-card">
       <div class="flex items-center justify-between mb-5">
         <div><p class="text-xs text-gray-400 mb-1">STEP 01</p><h2 class="text-xl font-bold">告诉我你要卖什么</h2></div>
-        <span class="px-3 py-1 rounded-full bg-[#fff0e9] text-primary text-xs font-bold">约 2 分钟</span>
+        <span class="px-3 py-1 rounded-full bg-[#E7E9E4] text-primary text-xs font-bold">约 2 分钟</span>
       </div>
       <form id="generate-form" class="space-y-4" novalidate>
         <div>
@@ -131,7 +134,7 @@ tailwind.config = {
           <label class="block text-sm font-semibold mb-1.5">商品主图 <span class="text-primary">*</span> <span class="text-xs text-gray-400 font-normal">用于真实图生视频</span></label>
           <label class="field flex items-center gap-3 rounded-xl p-3 cursor-pointer hover:border-primary" id="main-image-zone">
             <input type="file" accept="image/*" class="hidden" id="main-image-input" onchange="handleFilePick(this, 'main-image-preview', 'main-image-url')">
-            <div class="w-14 h-14 rounded-xl bg-[#f3efe5] flex items-center justify-center overflow-hidden shrink-0"><img id="main-image-preview" class="hidden w-full h-full object-cover"><i class="fa fa-cloud-upload text-xl text-primary" id="main-image-icon"></i></div>
+            <div class="w-14 h-14 rounded-xl bg-[#E7E9E4] flex items-center justify-center overflow-hidden shrink-0"><img id="main-image-preview" class="hidden w-full h-full object-cover"><i class="fa fa-cloud-upload text-xl text-primary" id="main-image-icon"></i></div>
             <div><p class="text-sm font-medium" id="main-image-text">点击上传商品图片</p><p class="text-xs text-gray-400 mt-1">PNG / JPG，建议正方形产品图</p></div>
           </label>
           <input type="hidden" id="main-image-url" name="product_main_image">
@@ -150,7 +153,7 @@ tailwind.config = {
             <div><label class="block text-sm font-medium mb-1.5">更多商品图片</label><div class="flex flex-wrap gap-2" id="extra-images-container"><label class="flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary transition w-16 h-16" id="add-image-btn"><input type="file" accept="image/*" class="hidden" id="extra-image-input" onchange="handleExtraImage(this)"><i class="fa fa-plus text-gray-400"></i><span class="text-[10px] text-gray-400">添加</span></label></div></div>
           </div>
         </details>
-        <button type="submit" id="submit-btn" class="w-full py-3.5 bg-primary text-white rounded-xl font-bold hover:bg-[#ed4826] transition flex items-center justify-center gap-2 shadow-lg shadow-primary/20"><i class="fa fa-play-circle"></i>生成竖屏广告素材</button>
+        <button type="submit" id="submit-btn" class="w-full py-3.5 bg-primary text-white rounded-xl font-bold hover:bg-[#557760] transition flex items-center justify-center gap-2 shadow-lg shadow-primary/20"><i class="fa fa-play-circle"></i>生成竖屏广告素材</button>
         <p class="text-[11px] text-gray-400 text-center">将调用 AI 生成视频，预计需要数分钟</p>
       </form>
     </div>
@@ -158,7 +161,7 @@ tailwind.config = {
     <div id="creative-workspace" class="rounded-[24px] overflow-hidden shadow-2xl shadow-black/10 min-h-[760px] soft-grid border border-black/[.06]">
       <div class="workspace-header px-5 lg:px-7 py-5 border-b flex items-center justify-between">
         <div><p class="text-xs text-white/40 mb-1">LIVE PREVIEW</p><h2 class="font-bold">素材生成工作台</h2></div>
-        <div class="flex gap-2"><span id="quality-pill" class="hidden px-2.5 py-1 rounded-full bg-green-500/15 text-green-300 text-xs"></span><span id="compliance-pill" class="hidden px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 text-xs"></span></div>
+        <div class="flex gap-2"><span id="quality-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span><span id="compliance-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span></div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-7 p-5 lg:p-7">
         <div class="flex flex-col items-center">
@@ -170,12 +173,20 @@ tailwind.config = {
             </div>
           </div>
           <div class="flex gap-2 mt-4"><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">10 秒</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">720P</span></div>
-          <a id="download-video" class="hidden mt-3 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#ed4826] transition" download><i class="fa fa-download mr-1"></i>下载 10 秒成片</a>
+          <a id="download-video" class="hidden mt-3 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#557760] transition" download><i class="fa fa-download mr-1"></i>下载 10 秒成片</a>
         </div>
 
         <div class="min-w-0">
           <div id="progress-panel">
-            <div class="flex items-center justify-between mb-5"><div><p class="text-xs text-primary font-bold tracking-wider">AGENT PROCESS</p><p id="progress-message" class="text-sm text-white/55 mt-1">填写左侧信息，开始创建第一条素材</p></div><span id="progress-percent" class="text-2xl font-black text-white/15">0%</span></div>
+            <div class="flex items-start justify-between gap-3 mb-5">
+              <div><p class="text-xs text-primary font-bold tracking-wider">AGENT PROCESS</p><p id="progress-message" class="text-sm text-white/55 mt-1">填写左侧信息，开始创建第一条素材</p></div>
+              <div class="flex flex-col items-end gap-2">
+                <span id="progress-percent" class="text-2xl font-black text-white/15">0%</span>
+                <button id="view-result-btn" type="button" onclick="showResultPanel()" class="hidden px-3 py-2 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition">
+                  查看脚本结果 <i class="fa fa-arrow-right ml-1"></i>
+                </button>
+              </div>
+            </div>
             <div class="space-y-2.5" id="stage-list">
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="0"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="0"></div><span class="stage-label text-sm text-white/45">分析商品与核心卖点</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="1"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="1"></div><span class="stage-label text-sm text-white/45">检索同品类历史素材</span></div>
@@ -190,7 +201,12 @@ tailwind.config = {
                   <p class="text-xs text-primary font-bold tracking-wider">LIVE SCRIPT</p>
                   <h3 class="font-bold text-sm mt-1">实时脚本</h3>
                 </div>
-                <span id="live-script-status" class="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] whitespace-nowrap">正在生成</span>
+                <div class="flex flex-col items-end gap-2">
+                  <span id="live-script-status" class="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] whitespace-nowrap">正在生成</span>
+                  <button id="live-progress-btn" type="button" onclick="returnToVideoProgress()" class="hidden px-3 py-2 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition">
+                    <i class="fa fa-arrow-left mr-1"></i>返回查看视频生成进度
+                  </button>
+                </div>
               </div>
               <p id="live-script-placeholder" class="text-sm text-white/45 mt-4 leading-6">AI 正在根据商品信息撰写脚本，完成后会立即显示在这里。</p>
               <div id="live-script-content" class="hidden mt-4 space-y-3 max-h-[300px] overflow-y-auto pr-1">
@@ -205,13 +221,19 @@ tailwind.config = {
           </div>
 
           <div id="result-area" class="hidden fade-in">
-            <div class="flex items-center justify-between mb-5"><div><p class="text-xs text-primary font-bold tracking-wider">CREATIVE BUNDLE</p><h3 class="text-xl font-bold mt-1">广告素材已就绪</h3></div><button onclick="resetForm()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs"><i class="fa fa-refresh mr-1"></i>再生成一条</button></div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <div><p class="text-xs text-primary font-bold tracking-wider">CREATIVE BUNDLE</p><h3 class="text-xl font-bold mt-1">广告素材已就绪</h3></div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="returnToVideoProgress()" class="px-3 py-2 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition"><i class="fa fa-arrow-left mr-1"></i>返回查看视频生成进度</button>
+                <button type="button" onclick="resetForm()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs"><i class="fa fa-refresh mr-1"></i>再生成一条</button>
+              </div>
+            </div>
             <div class="space-y-4 max-h-[610px] overflow-y-auto pr-1">
               <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-film text-primary mr-2"></i>分镜脚本</h3><div id="storyboard-container" class="space-y-2"></div></div>
-              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-bullhorn text-[#ffd66b] mr-2"></i>投放标题</h3><div id="titles-container" class="space-y-2"></div></div>
-              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-users text-green-400 mr-2"></i>人群定向</h3><div id="audience-container"></div></div>
+              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-bullhorn text-primary mr-2"></i>投放标题</h3><div id="titles-container" class="space-y-2"></div></div>
+              <div class="bg-white/[.06] rounded-2xl p-4"><h3 class="font-bold mb-3 text-sm"><i class="fa fa-users text-primary mr-2"></i>人群定向</h3><div id="audience-container"></div></div>
               <div id="quality-card" class="hidden"></div><div id="compliance-card" class="hidden"></div>
-              <div class="bg-[#d9ff62]/10 border border-[#d9ff62]/15 rounded-2xl p-4"><h3 class="font-bold mb-2 text-sm text-[#d9ff62]"><i class="fa fa-lightbulb-o mr-2"></i>创意策略</h3><p id="rationale-text" class="text-white/55 text-sm leading-6"></p></div>
+              <div class="bg-primary/10 border border-primary/15 rounded-2xl p-4"><h3 class="font-bold mb-2 text-sm text-primary"><i class="fa fa-lightbulb-o mr-2"></i>创意策略</h3><p id="rationale-text" class="text-white/55 text-sm leading-6"></p></div>
             </div>
           </div>
         </div>
@@ -244,7 +266,7 @@ tailwind.config = {
         <option value="数字清单">数字清单</option>
       </select>
     </div>
-    <button onclick="searchArchive()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-indigo-600 transition">
+    <button onclick="searchArchive()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary transition">
       <i class="fa fa-search mr-1"></i>搜索
     </button>
     <button onclick="loadArchive()" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 transition">
@@ -297,7 +319,7 @@ tailwind.config = {
         <input id="link-advertiser" type="text" class="w-full border rounded-lg px-3 py-2 text-sm outline-none" placeholder="广告主 ID">
       </div>
       <div class="flex items-end">
-        <button onclick="createLink()" class="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-indigo-600 transition">
+        <button onclick="createLink()" class="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary transition">
           <i class="fa fa-plus mr-1"></i>创建关联
         </button>
       </div>
@@ -329,7 +351,7 @@ tailwind.config = {
 
   <!-- C 区：效果数据面板 -->
   <div id="perf-panel" class="hidden bg-white rounded-xl p-6 shadow-sm mb-6">
-    <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fa fa-line-chart text-green-500"></i>效果数据面板</h3>
+    <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fa fa-line-chart text-primary"></i>效果数据面板</h3>
     <div class="mb-4">
       <label class="block text-xs text-gray-500 mb-1">查看素材</label>
       <select id="perf-select" onchange="loadPerformance()" class="border rounded-lg px-3 py-2 text-sm outline-none">
@@ -357,7 +379,7 @@ tailwind.config = {
       </div>
     </div>
     <div id="strategy-table" class="overflow-x-auto mb-4"></div>
-    <div id="strategy-insight" class="bg-blue-50 rounded-lg p-4 text-sm text-blue-800"></div>
+    <div id="strategy-insight" class="bg-primary/10 rounded-lg p-4 text-sm text-primary"></div>
   </div>
 </div>
 
@@ -412,7 +434,7 @@ document.addEventListener('fullscreenchange', () => {
 // ═══ Toast ═══
 function toast(msg, type='info') {
   const el = document.getElementById('toast');
-  const colors = { info:'bg-gray-800', success:'bg-green-600', error:'bg-red-500' };
+  const colors = { info:'bg-gray-800', success:'bg-primary', error:'bg-ink' };
   el.className = 'fixed top-4 right-4 z-[9999] px-4 py-2 rounded-lg text-white text-sm shadow-lg fade-in ' + (colors[type]||colors.info);
   el.textContent = msg;
   el.style.display = 'block';
@@ -443,8 +465,8 @@ document.querySelectorAll('.tag-input').forEach(wrapper => {
 function addTag(wrapper, text, field) {
   if (!text) return;
   const tag = document.createElement('span');
-  tag.className = 'tag bg-indigo-50 text-primary text-xs';
-  tag.innerHTML = `${text}<i class="fa fa-times cursor-pointer hover:text-red-400" onclick="this.parentElement.remove();updateTagField(this.closest('.tag-input'),'${field}')"></i>`;
+  tag.className = 'tag bg-primary/10 text-primary text-xs';
+  tag.innerHTML = `${text}<i class="fa fa-times cursor-pointer hover:text-ink" onclick="this.parentElement.remove();updateTagField(this.closest('.tag-input'),'${field}')"></i>`;
   wrapper.insertBefore(tag, wrapper.querySelector('.tag-inner-input'));
   updateTagField(wrapper, field);
 }
@@ -508,7 +530,7 @@ async function handleExtraImage(input) {
     const thumb = document.createElement('div');
     thumb.className = 'relative w-20 h-20 rounded-lg overflow-hidden border';
     thumb.innerHTML = `<img src="${url}" class="w-full h-full object-cover">
-      <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs" onclick="event.stopPropagation();removeExtraImage(this, '${url}')">&times;</button>`;
+      <button class="absolute top-0 right-0 bg-ink text-white rounded-full w-5 h-5 flex items-center justify-center text-xs" onclick="event.stopPropagation();removeExtraImage(this, '${url}')">&times;</button>`;
     container.insertBefore(thumb, document.getElementById('add-image-btn'));
     input.value = '';
     toast('图片已上传', 'success');
@@ -560,6 +582,9 @@ function prepareLiveScript(requestId) {
   document.getElementById('live-script-content').classList.add('hidden');
   document.getElementById('live-script-placeholder').classList.remove('hidden');
   document.getElementById('live-script-status').textContent = '正在生成';
+  document.getElementById('live-progress-btn').classList.add('hidden');
+  document.getElementById('view-result-btn').classList.add('hidden');
+  document.getElementById('result-area').removeAttribute('data-ready');
   document.getElementById('live-script-hook').textContent = '';
   document.getElementById('live-storyboard-container').replaceChildren();
   document.getElementById('live-titles-container').replaceChildren();
@@ -574,6 +599,7 @@ function renderLiveScript(preview, requestId) {
   document.getElementById('live-script-placeholder').classList.add('hidden');
   document.getElementById('live-script-content').classList.remove('hidden');
   document.getElementById('live-script-status').textContent = '脚本已生成 · 视频继续生成';
+  document.getElementById('live-progress-btn').classList.remove('hidden');
   document.getElementById('live-script-hook').textContent = preview.hook || '脚本已生成';
 
   const storyboard = document.getElementById('live-storyboard-container');
@@ -604,6 +630,26 @@ function renderLiveScript(preview, requestId) {
     item.textContent = `投放标题：${title}`;
     titles.appendChild(item);
   });
+}
+
+
+function returnToVideoProgress() {
+  const progress = document.getElementById('progress-panel');
+  const result = document.getElementById('result-area');
+  result.classList.add('hidden');
+  progress.classList.remove('hidden');
+  progress.scrollIntoView({behavior:'smooth', block:'start'});
+  const stageList = document.getElementById('stage-list');
+  stageList.classList.add('progress-focus');
+  window.setTimeout(() => stageList.classList.remove('progress-focus'), 900);
+}
+
+function showResultPanel() {
+  const result = document.getElementById('result-area');
+  if (result.dataset.ready !== 'true') return;
+  document.getElementById('progress-panel').classList.add('hidden');
+  result.classList.remove('hidden');
+  result.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ── 类目级联下拉 ──
@@ -791,7 +837,9 @@ async function pollStatus(requestId) {
 
 function showResult(data) {
   const area = document.getElementById('result-area');
+  area.dataset.ready = 'true';
   area.classList.remove('hidden');
+  document.getElementById('view-result-btn').classList.remove('hidden');
   document.getElementById('progress-panel').classList.add('hidden');
   const r = data.result;
 
@@ -829,7 +877,7 @@ function showResult(data) {
   // 人群
   const ac = document.getElementById('audience-container');
   const aud = r.suggested_audience || {};
-  ac.innerHTML = Object.entries(aud).map(([k,v]) => `<span class="tag bg-green-400/10 text-green-300 mr-2 mb-2">${k}: ${v}</span>`).join('') || '<p class="text-sm text-white/35">暂无定向建议</p>';
+  ac.innerHTML = Object.entries(aud).map(([k,v]) => `<span class="tag audience-tag mr-2 mb-2">${k}: ${v}</span>`).join('') || '<p class="text-sm text-white/35">暂无定向建议</p>';
 
   // 质量
   const qc = document.getElementById('quality-card');
@@ -839,8 +887,8 @@ function showResult(data) {
     const pill = document.getElementById('quality-pill');
     pill.textContent = `质量 ${q.total_score||'-'}分`;
     pill.classList.remove('hidden');
-    const gradeColor = {A:'text-green-600',B:'text-blue-600',C:'text-amber-600',D:'text-red-500'};
-    qc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-check-circle text-green-500"></i>质量评估</h3>
+    const gradeColor = {A:'text-primary',B:'text-primary',C:'text-primary',D:'text-ink'};
+    qc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-check-circle text-primary"></i>质量评估</h3>
       <p class="text-3xl font-bold ${gradeColor[q.grade]||'text-gray-600'}">${q.total_score||'-'} <span class="text-sm">分 / ${q.grade||'-'}</span></p>
       <div class="mt-2 text-xs text-gray-500">${Object.entries(q).filter(([k])=>!['total_score','grade'].includes(k)).map(([k,v])=>`<span class="mr-3">${k}: ${v}</span>`).join('')}</div>`;
   }
@@ -853,8 +901,8 @@ function showResult(data) {
     const pill = document.getElementById('compliance-pill');
     pill.textContent = c.decision === 'auto_pass' ? '合规通过' : `合规 ${c.decision||'-'}`;
     pill.classList.remove('hidden');
-    const decColor = {auto_pass:'text-green-600',auto_retry:'text-amber-600',manual_review:'text-red-500'};
-    cc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-shield text-blue-500"></i>合规检测</h3>
+    const decColor = {auto_pass:'text-primary',auto_retry:'text-primary',manual_review:'text-ink'};
+    cc.innerHTML = `<h3 class="font-bold mb-2 flex items-center gap-2"><i class="fa fa-shield text-primary"></i>合规检测</h3>
       <p class="text-xl font-bold ${decColor[c.decision]||'text-gray-600'}">${c.decision||'-'}</p>
       <p class="text-xs text-gray-500 mt-1">${c.reason||''}</p>`;
   }
@@ -866,7 +914,11 @@ function showResult(data) {
 }
 
 function resetForm() {
-  document.getElementById('result-area').classList.add('hidden');
+  const resultArea = document.getElementById('result-area');
+  resultArea.classList.add('hidden');
+  resultArea.removeAttribute('data-ready');
+  document.getElementById('view-result-btn').classList.add('hidden');
+  document.getElementById('live-progress-btn').classList.add('hidden');
   document.getElementById('progress-panel').classList.remove('hidden');
   document.getElementById('video-card').classList.add('hidden');
   document.getElementById('video-empty').classList.remove('hidden');
@@ -901,10 +953,10 @@ async function loadArchive() {
       card.className = 'bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition cursor-pointer fade-in';
       card.onclick = () => openDetail(item.id);
       const typeBadge = {
-        '对比测评':'bg-blue-50 text-blue-600',
-        '知识科普':'bg-green-50 text-green-600',
-        '场景植入':'bg-purple-50 text-purple-600',
-        '数字清单':'bg-amber-50 text-amber-600',
+        '对比测评':'bg-primary/10 text-primary',
+        '知识科普':'bg-primary/10 text-primary',
+        '场景植入':'bg-primary/10 text-primary',
+        '数字清单':'bg-primary/10 text-primary',
       };
       const badgeClass = typeBadge[item.script_type] || 'bg-gray-50 text-gray-600';
       card.innerHTML = `
@@ -918,7 +970,7 @@ async function loadArchive() {
           <span class="text-xs text-gray-400">${item.category||''}</span>
           <span>${starHTML(item.performance_star||0)}</span>
         </div>
-        ${item.has_performance_data ? `<div class="mt-2 text-xs text-green-600"><i class="fa fa-check-circle"></i> 有效果数据</div>` : ''}
+        ${item.has_performance_data ? `<div class="mt-2 text-xs text-primary"><i class="fa fa-check-circle"></i> 有效果数据</div>` : ''}
       `;
       grid.appendChild(card);
     });
@@ -950,10 +1002,10 @@ async function searchArchive() {
       card.className = 'bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition cursor-pointer fade-in';
       card.onclick = () => openDetail(item.id);
       const typeBadge = {
-        '对比测评':'bg-blue-50 text-blue-600',
-        '知识科普':'bg-green-50 text-green-600',
-        '场景植入':'bg-purple-50 text-purple-600',
-        '数字清单':'bg-amber-50 text-amber-600',
+        '对比测评':'bg-primary/10 text-primary',
+        '知识科普':'bg-primary/10 text-primary',
+        '场景植入':'bg-primary/10 text-primary',
+        '数字清单':'bg-primary/10 text-primary',
       };
       const badgeClass = typeBadge[item.script_type] || 'bg-gray-50 text-gray-600';
       card.innerHTML = `
@@ -988,20 +1040,20 @@ async function openDetail(id) {
     content.innerHTML = `
       <h2 class="text-xl font-bold mb-1">${item.product_name||'未命名'}</h2>
       <div class="flex gap-2 mb-4">
-        <span class="tag bg-indigo-50 text-primary text-xs">${item.script_type||''}</span>
+        <span class="tag bg-primary/10 text-primary text-xs">${item.script_type||''}</span>
         <span class="tag bg-gray-100 text-gray-600 text-xs">${item.category||''}</span>
-        ${item.has_performance_data ? `<span class="text-xs text-green-600">${starHTML(item.performance_star||0)} ROI: ${item.roi||0}</span>` : ''}
+        ${item.has_performance_data ? `<span class="text-xs text-primary">${starHTML(item.performance_star||0)} ROI: ${item.roi||0}</span>` : ''}
       </div>
       ${item.video_url ? `<video src="${item.video_url}" controls class="w-full rounded-lg mb-4"></video>` : ''}
       <h4 class="font-bold text-sm mt-4 mb-2">钩子文案</h4>
-      <p class="text-gray-700 bg-amber-50 px-3 py-2 rounded-lg">${item.hook||''}</p>
+      <p class="text-gray-700 bg-primary/10 px-3 py-2 rounded-lg">${item.hook||''}</p>
       <h4 class="font-bold text-sm mt-4 mb-2">分镜脚本</h4>
       <div class="space-y-2">${storyboard.map(s => `<div class="flex gap-3 p-2 bg-gray-50 rounded"><span class="text-xs font-mono text-primary">${s.time||''}</span><p class="text-sm">${s.scene||''}</p></div>`).join('')||'<p class="text-sm text-gray-400">无</p>'}</div>
       <h4 class="font-bold text-sm mt-4 mb-2">投放标题</h4>
       <div class="space-y-1">${adTitles.map(t => `<p class="text-sm text-gray-700">${t}</p>`).join('')||'<p class="text-sm text-gray-400">无</p>'}</div>
       ${item.has_performance_data ? `<div class="mt-4 grid grid-cols-3 gap-2 text-center">
         <div class="bg-gray-50 rounded p-2"><p class="text-xs text-gray-400">消耗</p><p class="font-bold">${(item.total_cost||0).toFixed(0)}</p></div>
-        <div class="bg-gray-50 rounded p-2"><p class="text-xs text-gray-400">ROI</p><p class="font-bold text-green-600">${(item.roi||0).toFixed(2)}</p></div>
+        <div class="bg-gray-50 rounded p-2"><p class="text-xs text-gray-400">ROI</p><p class="font-bold text-primary">${(item.roi||0).toFixed(2)}</p></div>
         <div class="bg-gray-50 rounded p-2"><p class="text-xs text-gray-400">CTR</p><p class="font-bold">${((item.avg_ctr||0)*100).toFixed(1)}%</p></div>
       </div>`:''}
     `;
@@ -1089,7 +1141,7 @@ async function loadLinks() {
         <td class="py-2 text-xs text-gray-500">${(item.linked_at||'').slice(0,10)}</td>
         <td class="py-2">${starHTML(item.performance_star||0)}</td>
         <td class="py-2">
-          <button onclick="deleteLink('${item.creative_id}','${item.ad_id}')" class="text-xs text-red-400 hover:text-red-600"><i class="fa fa-trash"></i></button>
+          <button onclick="deleteLink('${item.creative_id}','${item.ad_id}')" class="text-xs text-ink hover:text-ink"><i class="fa fa-trash"></i></button>
         </td>
       </tr>`;
     });
@@ -1165,8 +1217,8 @@ async function loadPerformance() {
       data: {
         labels: days.map(d => d.date),
         datasets: [
-          { label: 'CTR', data: days.map(d => d.ctr*100), borderColor: '#6366f1', tension: 0.3, yAxisID: 'y' },
-          { label: 'ROI', data: days.map(d => d.roi), borderColor: '#f59e0b', tension: 0.3, yAxisID: 'y1' },
+          { label: 'CTR', data: days.map(d => d.ctr*100), borderColor: '#557760', tension: 0.3, yAxisID: 'y' },
+          { label: 'ROI', data: days.map(d => d.roi), borderColor: '#171A17', tension: 0.3, yAxisID: 'y1' },
         ],
       },
       options: {
@@ -1219,7 +1271,7 @@ async function loadStrategy() {
           <td class="py-2">${i.hook_type}</td>
           <td class="py-2">${i.sample_count}</td>
           <td class="py-2">${((i.avg_ctr||0)*100).toFixed(1)}%</td>
-          <td class="py-2 font-bold ${(i.avg_roi||0)>=2?'text-green-600':''}">${(i.avg_roi||0).toFixed(2)}</td>
+          <td class="py-2 font-bold ${(i.avg_roi||0)>=2?'text-primary':''}">${(i.avg_roi||0).toFixed(2)}</td>
           <td class="py-2">${((i.avg_completion||0)*100).toFixed(1)}%</td>
         </tr>`).join('')}</tbody></table>`;
     }
