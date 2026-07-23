@@ -33,12 +33,30 @@ def _attach_state(state: AgentState) -> AgentState:
     return state
 
 
+def _repair_fake_video_completion(state: AgentState):
+    """将旧版遗留的 live/DONE/无视频状态纠正为失败，避免继续显示 100%。"""
+    if (
+        _agent is not None
+        and not _agent.demo_mode
+        and state.stage == AgentStage.DONE
+        and not state.video_url
+    ):
+        message = (
+            "脚本已生成，但没有生成可播放的视频成片；"
+            "该任务已从错误的完成状态纠正为视频未生成。"
+        )
+        state.error = message
+        state.video_stage = "delivery_failed"
+        state.set_stage(AgentStage.FAILED, message)
+
+
 def set_agent(agent):
     """由 main.py 调用，注入 Agent 并恢复历史任务状态。"""
     global _agent
     _agent = agent
     for state in _store.list_all():
         _attach_state(state)
+        _repair_fake_video_completion(state)
         if not state.is_complete:
             task_count = len(state.video_tasks)
             if task_count:
@@ -118,6 +136,8 @@ async def get_status(request_id: str):
             "message": "任务排队中或 request_id 不存在",
         }
 
+    _repair_fake_video_completion(state)
+
     if state.stage == AgentStage.FAILED:
         status = "failed"
     elif state.stage == AgentStage.INTERRUPTED:
@@ -167,8 +187,8 @@ async def get_status(request_id: str):
             "creative_rationale": bundle.get("creative_rationale"),
         }
 
-    # 如果已完成，附加完整结果
-    if state.is_complete and state.creative_bundle:
+    # 只有真实成功才返回完整结果；失败/中断时仍保留上方脚本预览。
+    if state.stage == AgentStage.DONE and state.creative_bundle:
         bundle = state.creative_bundle
         response["result"] = {
             "product_name": bundle.get("product_name"),

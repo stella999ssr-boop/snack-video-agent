@@ -616,7 +616,8 @@ function renderVideoProgress(progress) {
     submitting_2:'提交第 2 段', submitted_2:'第 2 段已提交', waiting:'等待渲染',
     rendering_1:'渲染第 1 段', rendering_2:'渲染第 2 段', downloading:'下载片段',
     merging:'拼接成片', voiceover:'合成口播', completed:'成片已保存',
-    submit_failed_1:'第 1 段失败', submit_failed_2:'第 2 段失败', interrupted:'服务曾重启'
+    submit_failed_1:'第 1 段失败', submit_failed_2:'第 2 段失败',
+    disabled:'视频未开启', delivery_failed:'视频未生成', interrupted:'服务曾重启'
   };
   panel.classList.remove('hidden');
   status.textContent = statusLabels[progress.stage] || '处理中';
@@ -649,7 +650,7 @@ function renderVideoProgress(progress) {
   });
 }
 
-function renderLiveScript(preview, requestId) {
+function renderLiveScript(preview, requestId, taskStage = '') {
   if (!preview || !Array.isArray(preview.storyboard)) return;
   if (liveScriptRequestId && requestId !== liveScriptRequestId) return;
 
@@ -657,7 +658,10 @@ function renderLiveScript(preview, requestId) {
   panel.classList.remove('hidden');
   document.getElementById('live-script-placeholder').classList.add('hidden');
   document.getElementById('live-script-content').classList.remove('hidden');
-  document.getElementById('live-script-status').textContent = '脚本已生成 · 视频继续生成';
+  const videoStopped = ['failed', 'interrupted'].includes(taskStage);
+  document.getElementById('live-script-status').textContent = videoStopped
+    ? '脚本已生成 · 视频未生成'
+    : '脚本已生成 · 视频继续生成';
   document.getElementById('live-progress-btn').classList.remove('hidden');
   document.getElementById('live-script-hook').textContent = preview.hook || '脚本已生成';
 
@@ -878,7 +882,7 @@ async function pollStatus(requestId) {
     const progressMessage = data.video_progress?.message || data.message || '';
     updateProgress(stage, progressMessage);
     renderVideoProgress(data.video_progress);
-    if (data.script_preview) renderLiveScript(data.script_preview, requestId);
+    if (data.script_preview) renderLiveScript(data.script_preview, requestId, stage);
 
     if (stage === 'done' || data.status === 'done') {
       updateProgress('done', data.message);

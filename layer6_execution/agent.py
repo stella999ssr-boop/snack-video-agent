@@ -71,9 +71,15 @@ class CreativeAgent:
         output_dir: str = "./static/outputs",
     ):
         dashscope_api_key = (dashscope_api_key or "").strip()
+        requested_demo_mode = bool(demo_mode)
+        if not requested_demo_mode and not dashscope_api_key:
+            raise RuntimeError(
+                "AGENT_MODE=live 时必须配置 DASHSCOPE_API_KEY，"
+                "服务不会静默退回 Demo 模式"
+            )
         self.memory = memory_manager
         self.user_id = user_id
-        self.demo_mode = demo_mode or not dashscope_api_key
+        self.demo_mode = requested_demo_mode
         self.enable_video = enable_video and not self.demo_mode
         self.upload_dir = os.path.abspath(upload_dir)
         self.output_dir = os.path.abspath(output_dir)
@@ -197,9 +203,10 @@ class CreativeAgent:
             bundle["suggested_audience"] = corrected
             bundle["audience_note"] = f"原标签 {invalid_tags} 不在千川标签库内，已自动修正"
 
-        # Step 3: 生成视频（仅在启用视频生成时）
+        # Step 3: 生成视频。Live 请求必须交付真实成片，不能静默跳过。
         print(f"[Agent] demo_mode={self.demo_mode}, enable_video={self.enable_video}")
-        if not self.demo_mode and self.enable_video:
+        self._require_video_enabled(state)
+        if not self.demo_mode:
             state.set_stage(
                 AgentStage.RENDERING,
                 "脚本已生成，正在准备提交第 1 段 Wan2.2",
@@ -211,60 +218,60 @@ class CreativeAgent:
             print("[Agent] 启动 10 秒真实图生视频：2 段 × 5 秒...")
             video_url, video_path = self._generate_10s_video(bundle, state)
 
-            if video_url and video_path:
-                state.video_url = video_url
-                state.video_path = video_path
+            state.video_url = video_url or None
+            state.video_path = video_path or None
+            state.checkpoint()
+            self._require_video_delivery(state)
+
+            # Step 4: 质量评估
+            state.set_stage(
+                AgentStage.QUALITY_CHECKING,
+                "视频已生成，正在完成质量评估",
+            )
+            quality = self.quality_checker.evaluate(
+                video_path=video_path,
+                original_prompt=bundle.get("wan22_prompt", ""),
+                script=bundle,
+            )
+            state.quality_report = quality.to_dict()
+            state.add_step(
+                thought=f"视频生成完成，质量评分: {quality.total_score}/100 ({quality.grade.value})",
+                action="quality_check",
+                action_input={"video_url": video_url},
+                observation=json.dumps(quality.to_dict(), ensure_ascii=False),
+            )
+
+            # Step 5: 合规检测
+            state.set_stage(
+                AgentStage.COMPLIANCE_CHECKING,
+                "质量评估完成，正在进行广告合规检查",
+            )
+            route = run_compliance_pipeline(
+                script=json.dumps(bundle, ensure_ascii=False),
+                ad_titles=bundle.get("ad_titles", []),
+                video_path=video_path,
+                retry_count=state.retry_count,
+            )
+            state.compliance_route = {
+                "decision": route.decision.value,
+                "reason": route.reason,
+                "notes": route.notes,
+            }
+            state.add_step(
+                thought=f"合规检测完成: {route.decision.value}",
+                action="compliance_check",
+                action_input={"video_url": video_url},
+                observation=json.dumps(state.compliance_route, ensure_ascii=False),
+            )
+
+            # 视频调用会产生费用；检测到问题时保留本次成片并标记复核，
+            # 不自动再次生成两段视频，避免一次点击产生多轮费用。
+            if route.decision in (
+                ReviewDecision.AUTO_RETRY,
+                ReviewDecision.MANUAL_REVIEW,
+            ):
+                state.creative_bundle["needs_manual_review"] = True
                 state.checkpoint()
-
-                # Step 4: 质量评估
-                state.set_stage(
-                    AgentStage.QUALITY_CHECKING,
-                    "视频已生成，正在完成质量评估",
-                )
-                quality = self.quality_checker.evaluate(
-                    video_path=video_path,
-                    original_prompt=bundle.get("wan22_prompt", ""),
-                    script=bundle,
-                )
-                state.quality_report = quality.to_dict()
-                state.add_step(
-                    thought=f"视频生成完成，质量评分: {quality.total_score}/100 ({quality.grade.value})",
-                    action="quality_check",
-                    action_input={"video_url": video_url},
-                    observation=json.dumps(quality.to_dict(), ensure_ascii=False),
-                )
-
-                # Step 5: 合规检测
-                state.set_stage(
-                    AgentStage.COMPLIANCE_CHECKING,
-                    "质量评估完成，正在进行广告合规检查",
-                )
-                route = run_compliance_pipeline(
-                    script=json.dumps(bundle, ensure_ascii=False),
-                    ad_titles=bundle.get("ad_titles", []),
-                    video_path=video_path,
-                    retry_count=state.retry_count,
-                )
-                state.compliance_route = {
-                    "decision": route.decision.value,
-                    "reason": route.reason,
-                    "notes": route.notes,
-                }
-                state.add_step(
-                    thought=f"合规检测完成: {route.decision.value}",
-                    action="compliance_check",
-                    action_input={"video_url": video_url},
-                    observation=json.dumps(state.compliance_route, ensure_ascii=False),
-                )
-
-                # 视频调用会产生费用；检测到问题时保留本次成片并标记复核，
-                # 不自动再次生成两段视频，避免一次点击产生多轮费用。
-                if route.decision in (
-                    ReviewDecision.AUTO_RETRY,
-                    ReviewDecision.MANUAL_REVIEW,
-                ):
-                    state.creative_bundle["needs_manual_review"] = True
-                    state.checkpoint()
 
         # Step 6: 存档素材
         self._archive_to_memory(state)
@@ -272,7 +279,13 @@ class CreativeAgent:
         # Step 7: 结束会话 → 记忆升级
         self.memory.end_session(state.session_id, self.user_id)
 
-        state.set_stage(AgentStage.DONE, "全部流程完成，素材已准备好")
+        self._require_video_delivery(state)
+        done_message = (
+            "演示脚本已生成（Demo 模式未调用视频模型）"
+            if self.demo_mode
+            else "视频、脚本与投放素材已全部生成"
+        )
+        state.set_stage(AgentStage.DONE, done_message)
 
         # ── 两清理：marker block + sidecar manifest ──
         try:
@@ -288,6 +301,30 @@ class CreativeAgent:
     # ═══════════════════════════════════════════
     # Creative Bundle 生成
     # ═══════════════════════════════════════════
+
+    def _require_video_enabled(self, state: AgentState):
+        """Live 模式关闭视频时保留脚本并明确失败，禁止假完成。"""
+        if self.demo_mode or self.enable_video:
+            return
+        message = (
+            "脚本已生成，但视频生成功能未开启。请将 Railway Variables 中的 "
+            "LIVE_ENABLE_VIDEO 设置为 true 并重新部署。"
+        )
+        state.set_video_stage("disabled", message)
+        raise RuntimeError(message)
+
+    def _require_video_delivery(self, state: AgentState):
+        """Live 模式只有同时拿到站内 URL 和本地成片路径才能完成。"""
+        if self.demo_mode:
+            return
+        if state.video_url and state.video_path:
+            return
+        message = (
+            "脚本已生成，但没有生成可播放的视频成片；"
+            "任务不会标记完成，请根据 Wan2.2 任务状态检查失败原因。"
+        )
+        state.set_video_stage("delivery_failed", message)
+        raise RuntimeError(message)
 
     def _generate_bundle(self, state: AgentState) -> dict:
         """调用 LLM 生成完整的 Creative Bundle"""
