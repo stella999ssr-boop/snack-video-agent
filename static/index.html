@@ -599,9 +599,44 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
 
   const fd = new FormData(e.target);
   const gatherTags = (name) => {
-    const el = document.querySelector(`.tag-input[data-field="${name}"] input[type="hidden"]`);
-    if (el) { try { return JSON.parse(el.value); } catch(_){} }
-    return [];
+    const wrapper = document.querySelector(`.tag-input[data-field="${name}"]`);
+    const el = wrapper?.querySelector('input[type="hidden"]');
+    let tags = [];
+    if (el) { try { tags = JSON.parse(el.value); } catch(_){} }
+    const pending = wrapper?.querySelector('.tag-inner-input')?.value.trim() || '';
+    if (pending) {
+      tags.push(...pending.split(/[，,、｜|；;\n]+/).map(item => item.trim()).filter(Boolean));
+    }
+    return [...new Set(tags)];
+  };
+  const parseDiscountRate = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const number = Number.parseFloat(raw);
+    if (!Number.isFinite(number)) return null;
+    if (raw.includes('折')) return number / 10;
+    if (raw.includes('%')) return number / 100;
+    return number;
+  };
+  const formatApiError = (data, fallback = '请求失败，请检查填写内容后重试') => {
+    const detail = data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      const fields = {
+        discount_rate: '折扣信息',
+        unit_price: '到手价',
+        original_price: '商品原价',
+        selling_points: '核心卖点',
+        product_main_image: '商品主图',
+      };
+      const messages = detail.map(item => {
+        const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : '';
+        const label = fields[field] || field || '提交内容';
+        return `${label}格式不正确`;
+      });
+      return [...new Set(messages)].join('；') || fallback;
+    }
+    return fallback;
   };
 
   const mainImage = document.getElementById('main-image-url').value || null;
@@ -621,7 +656,7 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
     price: {
       unit_price: parseFloat(fd.get('unit_price')) || 9.9,
       original_price: parseFloat(fd.get('original_price')) || 0,
-      discount_rate: fd.get('discount_rate') || '',
+      discount_rate: parseDiscountRate(fd.get('discount_rate')),
     },
     features: {
       selling_points: gatherTags('selling_points'),
@@ -644,7 +679,7 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
       body: JSON.stringify(body),
     });
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || '请求失败');
+    if (!resp.ok) throw new Error(formatApiError(data));
     updateProgress('analyze');
     document.getElementById('progress-panel').classList.remove('hidden');
     document.getElementById('result-area').classList.add('hidden');
