@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from security import safe_error_message
+from layer6_execution.state import AgentState, AgentStage
 from .schemas import CreativeInput, CreativeInputResponse
 
 router = APIRouter(prefix="/api/v1/creative", tags=["素材生成"])
@@ -27,16 +28,13 @@ def set_agent(agent):
 
 def _run_agent(request_id: str, input_data: CreativeInput):
     """后台任务：运行 Agent"""
+    state = _states[request_id]
     try:
         product = input_data.model_dump()
-        state = _agent.run(product, session_id=request_id)
-        _states[request_id] = state
+        _agent.run(product, session_id=request_id, state=state)
     except Exception as error:
-        from layer6_execution.state import AgentState, AgentStage
-        state = AgentState(session_id=request_id)
         state.stage = AgentStage.FAILED
         state.error = safe_error_message(error)
-        _states[request_id] = state
 
 
 @router.get("/categories")
@@ -58,6 +56,10 @@ async def create_creative(input_data: CreativeInput, background_tasks: Backgroun
         raise HTTPException(status_code=503, detail="Agent 未初始化")
 
     request_id = str(uuid.uuid4())[:8]
+    _states[request_id] = AgentState(
+        session_id=request_id,
+        product_input=input_data.model_dump(),
+    )
     background_tasks.add_task(_run_agent, request_id, input_data)
 
     return CreativeInputResponse(
@@ -96,6 +98,19 @@ async def get_status(request_id: str):
         "steps": state.step_count,
         "error": safe_error_message(state.error) if state.error else None,
     }
+
+    # 脚本一经生成就立即返回，视频仍可在后台继续渲染。
+    # 只暴露用户需要的创意结果，避免泄露模型 Prompt 等内部字段。
+    if state.creative_bundle:
+        bundle = state.creative_bundle
+        response["script_preview"] = {
+            "product_name": bundle.get("product_name"),
+            "script_type": bundle.get("script_type"),
+            "hook": bundle.get("hook"),
+            "storyboard": bundle.get("storyboard"),
+            "ad_titles": bundle.get("ad_titles"),
+            "creative_rationale": bundle.get("creative_rationale"),
+        }
 
     # 如果已完成，附加完整结果
     if state.is_complete and state.creative_bundle:

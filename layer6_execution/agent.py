@@ -106,13 +106,23 @@ class CreativeAgent:
     # 主入口
     # ═══════════════════════════════════════════
 
-    def run(self, product_input: dict, session_id: str = "") -> AgentState:
+    def run(
+        self,
+        product_input: dict,
+        session_id: str = "",
+        state: AgentState = None,
+    ) -> AgentState:
         """主入口：接收产品输入 → ReAct 循环 → 返回素材方案"""
-        state = AgentState(
-            session_id=session_id or uuid.uuid4().hex[:8],
-            user_id=self.user_id,
-            product_input=product_input,
-        )
+        if state is None:
+            state = AgentState(
+                session_id=session_id or uuid.uuid4().hex[:8],
+                user_id=self.user_id,
+                product_input=product_input,
+            )
+        else:
+            state.session_id = session_id or state.session_id
+            state.user_id = self.user_id
+            state.product_input = product_input
 
         # 启动会话
         self.memory.start_session(state.session_id)
@@ -134,13 +144,13 @@ class CreativeAgent:
         """Controller-Driven Pipeline — 聚合上下文 → 生成 → 质检 → 存档 → 清理"""
 
         # ── 一进：聚合上下文 ──
+        state.stage = AgentStage.ANALYZING
         self._current_ctx = TaskContextForEnv.aggregate(
             memory_manager=self.memory,
             product_input=state.product_input,
             session_id=state.session_id,
             user_id=self.user_id,
         )
-        state.stage = AgentStage.ANALYZING
 
         # ── 两写①：写结构化上下文文件 ──
         write_result = write_context_files(self._current_ctx, manifest=self.manifest)

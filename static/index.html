@@ -184,6 +184,24 @@ tailwind.config = {
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="4"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="4"></div><span class="stage-label text-sm text-white/45">质量评分与广告合规检查</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="5"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="5"></div><span class="stage-label text-sm text-white/45">素材生成完成</span></div>
             </div>
+            <div id="live-script-panel" class="hidden mt-4 rounded-2xl border border-primary/20 bg-white/[.06] p-4 fade-in">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs text-primary font-bold tracking-wider">LIVE SCRIPT</p>
+                  <h3 class="font-bold text-sm mt-1">实时脚本</h3>
+                </div>
+                <span id="live-script-status" class="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] whitespace-nowrap">正在生成</span>
+              </div>
+              <p id="live-script-placeholder" class="text-sm text-white/45 mt-4 leading-6">AI 正在根据商品信息撰写脚本，完成后会立即显示在这里。</p>
+              <div id="live-script-content" class="hidden mt-4 space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                <div class="rounded-xl bg-white/[.05] p-3">
+                  <p class="text-[11px] text-white/35 mb-1">开场钩子</p>
+                  <p id="live-script-hook" class="text-sm font-semibold leading-6"></p>
+                </div>
+                <div id="live-storyboard-container" class="space-y-2"></div>
+                <div id="live-titles-container" class="space-y-1"></div>
+              </div>
+            </div>
           </div>
 
           <div id="result-area" class="hidden fade-in">
@@ -508,9 +526,9 @@ function removeExtraImage(btn, url) {
 
 // ═══ 进度条 ═══
 function updateProgress(stage) {
-  const stageIndexes = { analyze:0, searching:1, generating:2, rendering:3, quality_checking:4, compliance_checking:4, retrying:3, done:5 };
+  const stageIndexes = { analyze:0, analyzing:0, searching:1, generating:2, rendering:3, quality_checking:4, compliance_checking:4, retrying:3, done:5 };
   const messages = {
-    analyze:'正在理解商品信息与核心卖点…', searching:'正在检索同品类历史素材与策略…',
+    analyze:'正在理解商品信息与核心卖点…', analyzing:'正在理解商品信息与核心卖点…', searching:'正在检索同品类历史素材与策略…',
     generating:'正在生成 10 秒双镜脚本…', rendering:'正在用商品主图生成两个 5 秒镜头…',
     quality_checking:'视频已生成，正在完成质量与合规检查…', compliance_checking:'正在进行广告合规检查…',
     retrying:'检测到可优化项，正在自动调整素材…', done:'全部流程完成，素材已准备好'
@@ -534,6 +552,59 @@ function updateProgress(stage) {
 
 // ═══ 页面 1：素材生成 ═══
 let pollingTimer = null;
+let liveScriptRequestId = '';
+
+function prepareLiveScript(requestId) {
+  liveScriptRequestId = requestId || '';
+  document.getElementById('live-script-panel').classList.remove('hidden');
+  document.getElementById('live-script-content').classList.add('hidden');
+  document.getElementById('live-script-placeholder').classList.remove('hidden');
+  document.getElementById('live-script-status').textContent = '正在生成';
+  document.getElementById('live-script-hook').textContent = '';
+  document.getElementById('live-storyboard-container').replaceChildren();
+  document.getElementById('live-titles-container').replaceChildren();
+}
+
+function renderLiveScript(preview, requestId) {
+  if (!preview || !Array.isArray(preview.storyboard)) return;
+  if (liveScriptRequestId && requestId !== liveScriptRequestId) return;
+
+  const panel = document.getElementById('live-script-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('live-script-placeholder').classList.add('hidden');
+  document.getElementById('live-script-content').classList.remove('hidden');
+  document.getElementById('live-script-status').textContent = '脚本已生成 · 视频继续生成';
+  document.getElementById('live-script-hook').textContent = preview.hook || '脚本已生成';
+
+  const storyboard = document.getElementById('live-storyboard-container');
+  storyboard.replaceChildren();
+  preview.storyboard.forEach(shot => {
+    const card = document.createElement('div');
+    card.className = 'flex gap-3 rounded-xl border border-white/[.05] bg-white/[.04] p-3';
+    const time = document.createElement('span');
+    time.className = 'text-xs font-mono text-primary whitespace-nowrap mt-0.5';
+    time.textContent = shot.time || '';
+    const text = document.createElement('div');
+    const scene = document.createElement('p');
+    scene.className = 'text-sm font-medium text-white/85 leading-5';
+    scene.textContent = shot.scene || '';
+    const copy = document.createElement('p');
+    copy.className = 'text-xs text-white/40 mt-1 leading-5';
+    copy.textContent = shot.copy || '';
+    text.append(scene, copy);
+    card.append(time, text);
+    storyboard.appendChild(card);
+  });
+
+  const titles = document.getElementById('live-titles-container');
+  titles.replaceChildren();
+  (preview.ad_titles || []).slice(0, 3).forEach(title => {
+    const item = document.createElement('p');
+    item.className = 'text-xs text-white/50 leading-5';
+    item.textContent = `投放标题：${title}`;
+    titles.appendChild(item);
+  });
+}
 
 // ── 类目级联下拉 ──
 const fallbackCategoryTree = {
@@ -683,6 +754,7 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
     updateProgress('analyze');
     document.getElementById('progress-panel').classList.remove('hidden');
     document.getElementById('result-area').classList.add('hidden');
+    prepareLiveScript(data.request_id);
     toast('素材生成任务已提交，正在处理...', 'success');
     pollStatus(data.request_id);
   } catch(err) {
@@ -697,6 +769,7 @@ async function pollStatus(requestId) {
   const data = await resp.json();
   const stage = data.stage || 'analyze';
   updateProgress(stage);
+  if (data.script_preview) renderLiveScript(data.script_preview, requestId);
 
   if (stage === 'done' || data.status === 'done') {
     updateProgress('done');
@@ -801,6 +874,8 @@ function resetForm() {
   document.getElementById('quality-pill').classList.add('hidden');
   document.getElementById('compliance-pill').classList.add('hidden');
   document.getElementById('generate-form').reset();
+  document.getElementById('live-script-panel').classList.add('hidden');
+  liveScriptRequestId = '';
   document.querySelectorAll('.stage-dot, .stage-item').forEach(d => { d.classList.remove('active','done'); });
   document.getElementById('progress-message').textContent = '填写左侧信息，开始创建第一条素材';
   document.getElementById('progress-percent').textContent = '0%';
