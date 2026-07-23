@@ -130,9 +130,9 @@ class CreativeAgent:
         try:
             self._react_loop(state)
         except Exception as error:
-            state.stage = AgentStage.FAILED
-            state.error = safe_error_message(error)
-            print(f"[Agent] 任务失败: {state.error}")
+            safe_error = safe_error_message(error)
+            state.set_error(safe_error)
+            print(f"[Agent] 任务失败: {safe_error}")
 
         return state
 
@@ -144,7 +144,7 @@ class CreativeAgent:
         """Controller-Driven Pipeline — 聚合上下文 → 生成 → 质检 → 存档 → 清理"""
 
         # ── 一进：聚合上下文 ──
-        state.stage = AgentStage.ANALYZING
+        state.set_stage(AgentStage.ANALYZING, "正在理解商品信息与核心卖点")
         self._current_ctx = TaskContextForEnv.aggregate(
             memory_manager=self.memory,
             product_input=state.product_input,
@@ -162,7 +162,7 @@ class CreativeAgent:
         print(f"[Agent] 运行时简报已生成, 产品={brief.product_name}")
 
         # Step 1: 检索记忆库
-        state.stage = AgentStage.SEARCHING
+        state.set_stage(AgentStage.SEARCHING, "正在检索同品类历史素材与策略")
         kb_result = self.tools._search_kb(
             query=TaskContextForEnv._build_search_query(state.product_input),
             category=self._current_ctx.category_l2,
@@ -175,7 +175,7 @@ class CreativeAgent:
         )
 
         # Step 2: 生成 Creative Bundle
-        state.stage = AgentStage.GENERATING
+        state.set_stage(AgentStage.GENERATING, "正在生成 10 秒双镜脚本")
         bundle = self._generate_bundle(state)
         state.creative_bundle = bundle
         state.add_step(
@@ -200,16 +200,27 @@ class CreativeAgent:
         # Step 3: 生成视频（仅在启用视频生成时）
         print(f"[Agent] demo_mode={self.demo_mode}, enable_video={self.enable_video}")
         if not self.demo_mode and self.enable_video:
-            state.stage = AgentStage.RENDERING
+            state.set_stage(
+                AgentStage.RENDERING,
+                "脚本已生成，正在准备提交第 1 段 Wan2.2",
+            )
+            state.set_video_stage(
+                "preparing",
+                "脚本已生成，正在校验商品主图与双镜视频参数",
+            )
             print("[Agent] 启动 10 秒真实图生视频：2 段 × 5 秒...")
             video_url, video_path = self._generate_10s_video(bundle, state)
 
             if video_url and video_path:
                 state.video_url = video_url
                 state.video_path = video_path
+                state.checkpoint()
 
                 # Step 4: 质量评估
-                state.stage = AgentStage.QUALITY_CHECKING
+                state.set_stage(
+                    AgentStage.QUALITY_CHECKING,
+                    "视频已生成，正在完成质量评估",
+                )
                 quality = self.quality_checker.evaluate(
                     video_path=video_path,
                     original_prompt=bundle.get("wan22_prompt", ""),
@@ -224,7 +235,10 @@ class CreativeAgent:
                 )
 
                 # Step 5: 合规检测
-                state.stage = AgentStage.COMPLIANCE_CHECKING
+                state.set_stage(
+                    AgentStage.COMPLIANCE_CHECKING,
+                    "质量评估完成，正在进行广告合规检查",
+                )
                 route = run_compliance_pipeline(
                     script=json.dumps(bundle, ensure_ascii=False),
                     ad_titles=bundle.get("ad_titles", []),
@@ -250,6 +264,7 @@ class CreativeAgent:
                     ReviewDecision.MANUAL_REVIEW,
                 ):
                     state.creative_bundle["needs_manual_review"] = True
+                    state.checkpoint()
 
         # Step 6: 存档素材
         self._archive_to_memory(state)
@@ -257,7 +272,7 @@ class CreativeAgent:
         # Step 7: 结束会话 → 记忆升级
         self.memory.end_session(state.session_id, self.user_id)
 
-        state.stage = AgentStage.DONE
+        state.set_stage(AgentStage.DONE, "全部流程完成，素材已准备好")
 
         # ── 两清理：marker block + sidecar manifest ──
         try:
@@ -601,18 +616,44 @@ class CreativeAgent:
             prompt = shot.get("wan22_prompt", "").strip()
             if not prompt:
                 raise RuntimeError(f"第 {index + 1} 镜缺少视频 Prompt")
-            result = self.wan22.i2v(
-                image_url=image_input,
-                prompt=prompt,
-                duration=5,
-                resolution="720P",
+            shot_number = index + 1
+            label = shot.get("label", f"镜头{shot_number}")
+            state.set_video_stage(
+                f"submitting_{shot_number}",
+                f"正在提交第 {shot_number}/2 段 Wan2.2 图生视频",
             )
-            task_ids.append((index, shot.get("label", f"镜头{index + 1}"), result.task_id))
+            print(f"[Agent] 正在提交第 {shot_number}/2 段 Wan2.2...")
+            try:
+                result = self.wan22.i2v(
+                    image_url=image_input,
+                    prompt=prompt,
+                    duration=5,
+                    resolution="720P",
+                )
+            except Exception as error:
+                safe_error = safe_error_message(error)
+                state.set_video_stage(
+                    f"submit_failed_{shot_number}",
+                    f"第 {shot_number}/2 段 Wan2.2 提交失败",
+                )
+                raise RuntimeError(
+                    f"WAN_SUBMIT_SHOT_{shot_number}_FAILED: {safe_error}"
+                ) from error
+            task_ids.append((index, label, result.task_id))
+            state.record_video_task(shot_number, label, result.task_id)
+            state.set_video_stage(
+                f"submitted_{shot_number}",
+                f"第 {shot_number}/2 段已提交，任务编号已保存",
+            )
+            print(
+                f"[Agent] 第 {shot_number}/2 段 Wan2.2 已提交并持久化, "
+                f"task_id={result.task_id}"
+            )
             state.add_step(
-                thought=f"提交第 {index + 1}/2 镜真实图生视频",
+                thought=f"提交第 {shot_number}/2 镜真实图生视频",
                 action="wan22_i2v",
                 action_input={
-                    "shot": index + 1,
+                    "shot": shot_number,
                     "duration": 5,
                     "uses_product_image": True,
                     "prompt": prompt[:80],
@@ -620,10 +661,29 @@ class CreativeAgent:
                 observation=f"task_id={result.task_id}",
             )
 
+        state.set_video_stage(
+            "waiting",
+            "两段 Wan2.2 均已提交，正在等待云端渲染",
+        )
         video_urls = []
         failures = []
         for index, label, task_id in task_ids:
-            final = self.wan22.wait(task_id, max_wait=600)
+            shot_number = index + 1
+            state.set_video_stage(
+                f"rendering_{shot_number}",
+                f"正在等待第 {shot_number}/2 段 Wan2.2 渲染",
+            )
+            final = self.wan22.wait(
+                task_id,
+                max_wait=600,
+                on_update=lambda update, task_id=task_id: state.update_video_task(
+                    task_id,
+                    update.status.value,
+                    safe_error_message(update.error_message)
+                    if update.error_message
+                    else None,
+                ),
+            )
             if final.status == TaskStatus.SUCCEEDED and final.video_url:
                 video_urls.append((index, label, final.video_url))
             else:
@@ -633,6 +693,10 @@ class CreativeAgent:
 
         tmpdir = tempfile.mkdtemp(prefix="snack_video_")
         try:
+            state.set_video_stage(
+                "downloading",
+                "两段视频已生成，正在下载并准备拼接",
+            )
             video_files = []
             for index, label, url in sorted(video_urls):
                 video_path = os.path.join(tmpdir, f"shot_{index + 1}.mp4")
@@ -646,6 +710,7 @@ class CreativeAgent:
                 raise RuntimeError("未能下载完整的两个视频镜头")
 
             merged_path = os.path.join(tmpdir, "merged_10s.mp4")
+            state.set_video_stage("merging", "正在将两段视频拼接为 10 秒成片")
             concat_filter = (
                 "[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,"
                 "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];"
@@ -669,6 +734,7 @@ class CreativeAgent:
             script_text = " ".join(shot.get("copy", "") for shot in shots if shot.get("copy"))
             source_path = merged_path
             if script_text:
+                state.set_video_stage("voiceover", "正在为 10 秒成片合成口播")
                 voice_path = os.path.join(tmpdir, "voice.mp3")
                 voiced_path = os.path.join(tmpdir, "voiced_10s.mp4")
                 try:
@@ -702,6 +768,7 @@ class CreativeAgent:
                     print(f"[Agent] 口播合成失败，保留无声成片: {error}")
 
             shutil.copy2(source_path, final_path)
+            state.set_video_stage("completed", "10 秒成片已保存")
             state.add_step(
                 thought="两个真实图生视频镜头已拼接并永久保存",
                 action="video_concat",

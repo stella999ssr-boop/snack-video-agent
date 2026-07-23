@@ -10,7 +10,7 @@ Wan2.2 视频生成工具封装
 """
 
 import time
-from typing import Optional
+from typing import Callable, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -90,7 +90,7 @@ class Wan22Tool:
                     },
                 }
                 resp = self._client.post("/services/aigc/video-generation/video-synthesis", json=body)
-                data = resp.json()
+                data = self._response_json(resp)
                 self._check_dashscope_error(data)
                 task_id = data["output"]["task_id"]
                 print(f"[Wan22] t2v 使用模型 {model}, task_id={task_id}")
@@ -132,7 +132,7 @@ class Wan22Tool:
                     },
                 }
                 resp = self._client.post("/services/aigc/video-generation/video-synthesis", json=body)
-                data = resp.json()
+                data = self._response_json(resp)
                 self._check_dashscope_error(data)
                 task_id = data["output"]["task_id"]
                 print(f"[Wan22] i2v 使用模型 {model}, task_id={task_id}")
@@ -154,7 +154,7 @@ class Wan22Tool:
                 "X-DashScope-Async": "enable",
             },
         )
-        data = resp.json()
+        data = self._response_json(resp)
         self._check_dashscope_error(data)
 
         status = data.get("output", {}).get("task_status", "UNKNOWN")
@@ -187,11 +187,14 @@ class Wan22Tool:
         task_id: str,
         poll_interval: int = 5,
         max_wait: int = 300,
+        on_update: Optional[Callable[[Wan22Result], None]] = None,
     ) -> Wan22Result:
         """轮询等待任务完成（阻塞）"""
         elapsed = 0
         while elapsed < max_wait:
             result = self.query_task(task_id)
+            if on_update:
+                on_update(result)
 
             if result.status == TaskStatus.SUCCEEDED:
                 return result
@@ -203,11 +206,14 @@ class Wan22Tool:
             time.sleep(poll_interval)
             elapsed += poll_interval
 
-        return Wan22Result(
+        result = Wan22Result(
             task_id=task_id,
             status=TaskStatus.UNKNOWN,
             error_message=f"超时（{max_wait}s 内未完成）",
         )
+        if on_update:
+            on_update(result)
+        return result
 
     # ─── 工具方法 ─────────────────────────────────
 
@@ -217,6 +223,19 @@ class Wan22Tool:
             raise RuntimeError(
                 f"DashScope API 错误: code={data.get('code')}, message={data.get('message', 'unknown')}"
             )
+
+    @staticmethod
+    def _response_json(response: httpx.Response) -> dict:
+        """保留 DashScope 错误码，避免把 HTML 或敏感请求头返回给用户。"""
+        try:
+            data = response.json()
+        except ValueError as error:
+            raise RuntimeError(
+                f"DashScope HTTP {response.status_code}: 返回内容无法解析"
+            ) from error
+        if response.is_error and not data.get("code"):
+            raise RuntimeError(f"DashScope HTTP {response.status_code}: 请求被拒绝")
+        return data
 
     def health(self) -> bool:
         """检查 API Key 是否有效（轻量请求）"""
