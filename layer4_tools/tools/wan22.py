@@ -41,10 +41,10 @@ class Wan22Tool:
 
     # 支持的模型（按优先级排列，首个不可用时自动降级）
     T2V_MODELS = ["wan2.2-t2v-plus", "wanx-v1"]
-    I2V_MODELS = ["wan2.2-i2v-plus", "wanx-i2v-v1"]
+    I2V_MODELS = ["wan2.2-i2v-flash", "wan2.2-i2v-plus"]
 
     # 支持的参数
-    SUPPORTED_DURATIONS = {5, 8, 10}    # 秒
+    SUPPORTED_DURATIONS = {5}           # Wan2.2 单镜固定 5 秒
     SUPPORTED_RESOLUTIONS = {"720P", "1080P"}
 
     def __init__(self, api_key: str, timeout: int = 300):
@@ -109,18 +109,24 @@ class Wan22Tool:
         resolution: str = "720P",
     ) -> Wan22Result:
         """图生视频 — 以产品图作为首帧"""
+        if duration != 5:
+            raise ValueError("Wan2.2 图生视频单次固定为 5 秒；10 秒成片由两个 5 秒镜头拼接")
+
         last_error = None
         for model in self.I2V_MODELS:
             try:
+                model_resolution = resolution
+                if model == "wan2.2-i2v-plus" and resolution == "720P":
+                    model_resolution = "1080P"
                 body = {
                     "model": model,
                     "input": {
                         "prompt": prompt,
-                        "first_frame_image": image_url,
+                        "img_url": image_url,
                     },
                     "parameters": {
-                        "duration": duration,
-                        "resolution": resolution,
+                        "resolution": model_resolution,
+                        "prompt_extend": True,
                     },
                 }
                 resp = self._client.post("/services/aigc/video-generation/video-synthesis", json=body)
@@ -158,6 +164,10 @@ class Wan22Tool:
             results = output.get("results", {})
             if isinstance(results, dict):
                 result.video_url = results.get("video_url") or results.get("video_urls", [None])[0]
+            elif isinstance(results, list) and results:
+                first = results[0]
+                if isinstance(first, dict):
+                    result.video_url = first.get("video_url") or first.get("url")
             if not result.video_url:
                 result.video_url = output.get("video_url")
             if not result.video_url:

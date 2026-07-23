@@ -51,7 +51,7 @@ class CreativeBrief:
     skill_names: list[str] = field(default_factory=list)
 
     # ── 约束 ──
-    duration_range: str = "15-30"
+    duration_range: str = "10"
     must_comply: str = (
         "1. 禁止虚假宣传/极限词 2. 食品不得暗示医疗功效 "
         "3. 价格对比需真实 4. 不得贬低竞品"
@@ -216,6 +216,7 @@ def inject_runtime_config(ctx: TaskContextForEnv) -> CreativeBrief:
         taboo_words=ctx.taboo_words,
         session_feedback_raw=ctx.feedback_summary,
         skill_names=[s.name for s in ctx.available_skills],
+        duration_range=str(product.get("target_duration", 10)),
     )
 
     return brief

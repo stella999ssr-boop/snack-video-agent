@@ -10,14 +10,16 @@
   两清理: marker block + sidecarManifest
 """
 
+import base64
 import json
+import mimetypes
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import uuid
 from datetime import datetime
-from typing import Optional
 
 import httpx
 
@@ -64,11 +66,17 @@ class CreativeAgent:
         demo_mode: bool = False,
         enable_video: bool = False,
         context_work_dir: str = "",
+        upload_dir: str = "./static/uploads",
+        output_dir: str = "./static/outputs",
     ):
         self.memory = memory_manager
         self.user_id = user_id
         self.demo_mode = demo_mode or not dashscope_api_key
         self.enable_video = enable_video and not self.demo_mode
+        self.upload_dir = os.path.abspath(upload_dir)
+        self.output_dir = os.path.abspath(output_dir)
+        os.makedirs(self.upload_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # 上下文注入系统
         self.context_work_dir = context_work_dir or ".agent_context"
@@ -180,22 +188,17 @@ class CreativeAgent:
         print(f"[Agent] demo_mode={self.demo_mode}, enable_video={self.enable_video}")
         if not self.demo_mode and self.enable_video:
             state.stage = AgentStage.RENDERING
+            print("[Agent] 启动 10 秒真实图生视频：2 段 × 5 秒...")
+            video_url, video_path = self._generate_10s_video(bundle, state)
 
-            # 检查是否为多镜脚本
-            if bundle.get("multi_shot"):
-                print("[Agent] 检测到多镜脚本，启动 3 段 Wan2.2 并行生成...")
-                video_url = self._generate_multi_shot_video(bundle, state)
-            else:
-                print("[Agent] 单镜模式，调用 Wan2.2...")
-                video_url = self._generate_single_video(bundle, state)
-
-            if video_url:
+            if video_url and video_path:
                 state.video_url = video_url
+                state.video_path = video_path
 
                 # Step 4: 质量评估
                 state.stage = AgentStage.QUALITY_CHECKING
                 quality = self.quality_checker.evaluate(
-                    video_path=video_url,
+                    video_path=video_path,
                     original_prompt=bundle.get("wan22_prompt", ""),
                     script=bundle,
                 )
@@ -212,7 +215,7 @@ class CreativeAgent:
                 route = run_compliance_pipeline(
                     script=json.dumps(bundle, ensure_ascii=False),
                     ad_titles=bundle.get("ad_titles", []),
-                    video_path=video_url,
+                    video_path=video_path,
                     retry_count=state.retry_count,
                 )
                 state.compliance_route = {
@@ -227,14 +230,12 @@ class CreativeAgent:
                     observation=json.dumps(state.compliance_route, ensure_ascii=False),
                 )
 
-                # 合规重试逻辑
-                if route.decision == ReviewDecision.AUTO_RETRY and state.can_retry:
-                    state.stage = AgentStage.RETRYING
-                    state.retry_count += 1
-                    return self._react_loop(state)
-
-                if route.decision == ReviewDecision.MANUAL_REVIEW:
-                    state.stage = AgentStage.DONE
+                # 视频调用会产生费用；检测到问题时保留本次成片并标记复核，
+                # 不自动再次生成两段视频，避免一次点击产生多轮费用。
+                if route.decision in (
+                    ReviewDecision.AUTO_RETRY,
+                    ReviewDecision.MANUAL_REVIEW,
+                ):
                     state.creative_bundle["needs_manual_review"] = True
 
         # Step 6: 存档素材
@@ -270,10 +271,12 @@ class CreativeAgent:
 
         if self.demo_mode:
             # Demo 模式：返回模拟输出
-            return self._demo_generate(product)
+            bundle = self._demo_generate(product)
+        else:
+            # Live 模式：调用 DashScope
+            bundle = self._llm_generate(user_message)
 
-        # Live 模式：调用 DashScope
-        return self._llm_generate(user_message)
+        return self._normalize_10s_bundle(bundle, product)
 
     def _llm_generate(self, user_message: str) -> dict:
         """调用 DashScope LLM 生成 Creative Bundle"""
@@ -349,7 +352,7 @@ class CreativeAgent:
             script_type = "数字清单"
             hook = f"回购3次的{category}，第2款最上头"
 
-        # 构建 Wan2.2 多镜 Prompt（3 段 × 5s = 15s，共享视觉 DNA）
+        # 构建 10 秒双镜 Prompt（2 段 × 5s，共享视觉 DNA）
         sp_text = "，".join(selling_points[:3])
         taste_text = "，".join(taste_tags)
         scene_text = use_scene[0] if use_scene else "追剧"
@@ -363,23 +366,17 @@ class CreativeAgent:
         wan22_prompts = [
             (
                 VISUAL_DNA
-                + f"Opening shot: macro close-up of golden crispy {product_name} on rustic wooden table, "
-                f"steam rising, texture detail visible. Camera slowly pushes in. "
-                f"Warm amber tones, shallow depth of field. Slight slow motion. 5 seconds."
+                + f"Use the uploaded product package as the exact first frame and preserve its logo, "
+                f"colors, typography and package shape. Opening shot: the package stays clearly visible "
+                f"beside a macro close-up of {product_name}. Camera slowly pushes in, warm amber light, "
+                f"shallow depth of field, appetizing texture. Do not alter any packaging text. 5 seconds."
             ),
             (
                 VISUAL_DNA
-                + f"Continuation: someone picking up {product_name}, bringing to mouth, "
-                f"satisfying bite in slow motion, crumbs falling. "
-                f"Golden light through window, natural food blogger POV. "
-                f"Same warm palette and depth of field. Texture emphasized. 5 seconds."
-            ),
-            (
-                VISUAL_DNA
-                + f"Final shot: wide view of snack on table in cozy room, "
-                f"product packaging visible, {scene_text} scene in background. "
-                f"Soft evening light, inviting atmosphere. "
-                f"Same handheld aesthetic. Zoom out revealing full scene. 5 seconds."
+                + f"Use the uploaded product package as the exact first frame and preserve its logo, "
+                f"colors, typography and package shape. Show the package in a cozy {scene_text} setting, "
+                f"then a hand naturally picks up one piece of {product_name}. Keep the package readable "
+                f"in frame and end on a clean product hero shot with space for a CTA overlay. 5 seconds."
             ),
         ]
 
@@ -402,19 +399,11 @@ class CreativeAgent:
                 },
                 {
                     "time": "5-10s",
-                    "label": "产品展示",
-                    "scene": f"手拿{product_name}送入口中，慢动作咬下，碎屑散落",
-                    "copy": f"{taste_text}的质感，蓬蓬松松咬下去特别酥。关键还是减油版，吃一整袋嘴里不腻",
+                    "label": "卖点转化",
+                    "scene": f"{scene_text}场景中展示真实包装，手拿产品试吃，最后回到商品主视觉",
+                    "copy": f"{taste_text}口感，{sp_text}。{unit_price}元到手，左下角链接去试试",
                     "wan22_prompt": wan22_prompts[1],
-                    "effect": "手持POV+微距慢动作",
-                },
-                {
-                    "time": "10-15s",
-                    "label": "下单转化",
-                    "scene": f"温馨{scene_text}场景，{product_name}摆在桌上",
-                    "copy": f"热量还不高，{scene_text}的时候拆一包太爽了。{unit_price}元到手，左下角链接去试试",
-                    "wan22_prompt": wan22_prompts[2],
-                    "effect": "广角拉远+C T A引导",
+                    "effect": "手持POV+商品定格+CTA",
                 },
             ],
             "storyboard": [  # 兼容旧版前端
@@ -427,14 +416,8 @@ class CreativeAgent:
                 {
                     "time": "5-10s",
                     "scene": f"试吃{product_name}",
-                    "copy": f"{sp_text}，{taste_text}口感",
-                    "effect": "手持POV",
-                },
-                {
-                    "time": "10-15s",
-                    "scene": f"场景展示",
-                    "copy": f"{unit_price}元到手，左下角有链接",
-                    "effect": "下单引导",
+                    "copy": f"{sp_text}，{taste_text}口感，{unit_price}元到手",
+                    "effect": "手持POV+下单引导",
                 },
             ],
             "wan22_prompt": wan22_prompts[0],  # 兼容旧版单镜调用
@@ -444,7 +427,7 @@ class CreativeAgent:
                 f"{'，'.join(selling_points[:2])}的{category}，{unit_price}元你还要啥自行车",
             ],
             "suggested_audience": audience,
-            "creative_rationale": f"3镜{script_type}型，利用{'价格优势' if script_type == '对比测评' else '场景共鸣'}建立购买动机，交叉淡入淡出过渡",
+            "creative_rationale": f"10秒双镜{script_type}型，前5秒用真实包装建立识别，后5秒通过{'价格优势' if script_type == '对比测评' else '场景共鸣'}推动转化",
         }
 
     # ═══════════════════════════════════════════
@@ -494,189 +477,227 @@ class CreativeAgent:
         similar_count = len(kb_result.get("similar_creatives", []))
         return f"基于记忆检索结果（{similar_count}条相似素材），{insight or '结合产品特点'}确定创意方向"
 
-    def _generate_single_video(self, bundle: dict, state: AgentState) -> Optional[str]:
-        """单镜模式：生成一段 5s Wan2.2 视频"""
-        prompt = bundle.get("wan22_prompt", "")
-        if not prompt:
-            print("[Agent] _generate_single_video: prompt 为空，跳过")
-            return None
+    def _normalize_10s_bundle(self, bundle: dict, product: dict) -> dict:
+        """把 LLM 或 Demo 输出统一成两个 5 秒镜头。"""
+        if not isinstance(bundle, dict):
+            bundle = {}
 
-        try:
-            result = self.wan22.t2v(prompt=prompt, duration=5)
+        product_name = product.get("product_name", "零食")
+        features = product.get("features", {})
+        selling_points = features.get("selling_points") or ["口感好", "性价比高"]
+        use_scene = features.get("use_scene") or ["追剧"]
+        price = product.get("price", {}).get("unit_price", 9.9)
+        visual_dna = (
+            "Vertical 9:16 smartphone food advertisement, 720p, warm natural lighting, "
+            "appetizing detail, subtle handheld movement, cinematic depth of field. "
+            "Use the uploaded product package as the exact first frame. Preserve the logo, "
+            "colors, typography and package shape; do not alter packaging text. "
+        )
+
+        existing_shots = bundle.get("shots") if isinstance(bundle.get("shots"), list) else []
+        storyboard = bundle.get("storyboard") if isinstance(bundle.get("storyboard"), list) else []
+        source = existing_shots or storyboard
+        default_scenes = [
+            f"真实包装与{product_name}质感特写",
+            f"{use_scene[0]}场景展示，最后回到真实包装和下单引导",
+        ]
+        default_copies = [
+            bundle.get("hook") or f"这个{product_name}，第一口就很上头",
+            f"{'、'.join(selling_points[:2])}，{price}元到手，左下角链接去试试",
+        ]
+
+        shots = []
+        for index in range(2):
+            item = source[index] if index < len(source) and isinstance(source[index], dict) else {}
+            scene = item.get("scene") or default_scenes[index]
+            if index == 0:
+                motion = (
+                    f"Opening shot: {scene}. Keep the package clearly readable while the camera "
+                    "slowly pushes in and reveals appetizing product texture. 5 seconds."
+                )
+                label = "钩子开场"
+            else:
+                motion = (
+                    f"Conversion shot: {scene}. Place the package in a cozy {use_scene[0]} setting, "
+                    "show a natural hand interaction, and end on a clean product hero frame with "
+                    "space for a CTA overlay. 5 seconds."
+                )
+                label = "卖点转化"
+            raw_prompt = item.get("wan22_prompt") or motion
+            if "uploaded product package" not in raw_prompt.lower():
+                raw_prompt = visual_dna + raw_prompt
+            shots.append({
+                "time": "0-5s" if index == 0 else "5-10s",
+                "label": item.get("label") or label,
+                "scene": scene,
+                "copy": item.get("copy") or default_copies[index],
+                "wan22_prompt": raw_prompt,
+                "effect": item.get("effect") or ("微距推镜" if index == 0 else "场景展示+商品定格"),
+            })
+
+        bundle["product_name"] = bundle.get("product_name") or product_name
+        bundle["multi_shot"] = True
+        bundle["target_duration"] = 10
+        bundle["shots"] = shots
+        bundle["storyboard"] = [
+            {key: shot[key] for key in ("time", "scene", "copy", "effect")}
+            for shot in shots
+        ]
+        bundle["wan22_prompt"] = shots[0]["wan22_prompt"]
+        return bundle
+
+    def _product_image_input(self, product_input: dict) -> str:
+        """把上传的商品图转成 DashScope 可读取的公网 URL 或 Base64 data URL。"""
+        assets = product_input.get("assets") or {}
+        image_ref = assets.get("product_main_image")
+        if not image_ref:
+            images = assets.get("product_images") or []
+            image_ref = images[0] if images else ""
+        if not image_ref:
+            raise RuntimeError("请先上传商品主图；真实视频生成必须使用商品图片")
+
+        if image_ref.startswith(("http://", "https://", "data:image/")):
+            return image_ref
+
+        filename = os.path.basename(image_ref.split("?", 1)[0])
+        image_path = os.path.abspath(os.path.join(self.upload_dir, filename))
+        if os.path.commonpath([self.upload_dir, image_path]) != self.upload_dir:
+            raise RuntimeError("商品图片路径无效")
+        if not os.path.isfile(image_path):
+            raise RuntimeError("找不到已上传的商品主图，请重新上传后再生成")
+
+        size = os.path.getsize(image_path)
+        if size > 10 * 1024 * 1024:
+            raise RuntimeError("Wan2.2 商品主图不能超过 10MB")
+        mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+        if mime not in {"image/jpeg", "image/png", "image/webp", "image/bmp"}:
+            raise RuntimeError("商品主图仅支持 JPG、PNG、WebP 或 BMP")
+        with open(image_path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
+
+    def _generate_10s_video(self, bundle: dict, state: AgentState) -> tuple[str, str]:
+        """两次真实 I2V → 精确拼接为 10 秒 → 保存为站内永久地址。"""
+        image_input = self._product_image_input(state.product_input)
+        shots = (bundle.get("shots") or [])[:2]
+        if len(shots) != 2:
+            raise RuntimeError("10 秒广告需要两个 5 秒镜头")
+
+        task_ids = []
+        for index, shot in enumerate(shots):
+            prompt = shot.get("wan22_prompt", "").strip()
+            if not prompt:
+                raise RuntimeError(f"第 {index + 1} 镜缺少视频 Prompt")
+            result = self.wan22.i2v(
+                image_url=image_input,
+                prompt=prompt,
+                duration=5,
+                resolution="720P",
+            )
+            task_ids.append((index, shot.get("label", f"镜头{index + 1}"), result.task_id))
             state.add_step(
-                thought="Wan2.2 视频生成任务已提交",
-                action="wan22_t2v",
-                action_input={"prompt": prompt[:80], "duration": 5},
+                thought=f"提交第 {index + 1}/2 镜真实图生视频",
+                action="wan22_i2v",
+                action_input={
+                    "shot": index + 1,
+                    "duration": 5,
+                    "uses_product_image": True,
+                    "prompt": prompt[:80],
+                },
                 observation=f"task_id={result.task_id}",
             )
-            final = self.wan22.wait(result.task_id)
-            if final.status == TaskStatus.SUCCEEDED and final.video_url:
-                return final.video_url
-            return None
-        except Exception as e:
-            print(f"[Agent] _generate_single_video: 失败 - {e}")
-            return None
 
-    def _generate_multi_shot_video(self, bundle: dict, state: AgentState) -> Optional[str]:
-        """
-        多镜模式：3 段 Wan2.2 并行生成 → 交叉淡入淡出拼接 → 叠加口播
-
-        让过渡自然的三个技巧:
-          1. 三段 prompt 共享视觉 DNA（灯光/色调/手持感/色彩）
-          2. ffmpeg xfade 交叉淡入淡出 0.4s
-          3. 连续 TTS 口播贯穿全场，视觉切时听觉不断
-        """
-        import subprocess
-        import tempfile
-
-        shots = bundle.get("shots", [])
-        if not shots:
-            print("[Agent] _generate_multi_shot: 无 shots，降级为单镜")
-            return self._generate_single_video(bundle, state)
-
-        # ── 1. 并行提交 3 个 Wan2.2 任务 ──
-        task_ids = []
-        for i, shot in enumerate(shots):
-            prompt = shot.get("wan22_prompt", "")
-            if not prompt:
-                print(f"[Agent] 第 {i+1} 镜 prompt 为空，跳过")
-                continue
-            try:
-                result = self.wan22.t2v(prompt=prompt, duration=5)
-                task_ids.append((i, shot["label"], result.task_id))
-                state.add_step(
-                    thought=f"提交第 {i+1}/3 镜 ({shot['label']})",
-                    action="wan22_t2v",
-                    action_input={"shot": i+1, "label": shot["label"], "prompt": prompt[:60]},
-                    observation=f"task_id={result.task_id}",
-                )
-            except Exception as e:
-                print(f"[Agent] 第 {i+1} 镜提交失败: {e}")
-
-        if not task_ids:
-            return None
-
-        # ── 2. 等待全部完成 ──
         video_urls = []
-        for i, label, tid in task_ids:
-            print(f"[Agent] 等待第 {i+1}/3 镜 ({label}) task_id={tid}...")
-            final = self.wan22.wait(tid)
+        failures = []
+        for index, label, task_id in task_ids:
+            final = self.wan22.wait(task_id, max_wait=600)
             if final.status == TaskStatus.SUCCEEDED and final.video_url:
-                video_urls.append((i, label, final.video_url))
+                video_urls.append((index, label, final.video_url))
             else:
-                print(f"[Agent] 第 {i+1} 镜失败: {final.error_message}")
+                failures.append(f"第{index + 1}镜：{final.error_message or final.status.value}")
+        if failures:
+            raise RuntimeError("视频生成失败；" + "；".join(failures))
 
-        if not video_urls:
-            return self._generate_single_video(bundle, state)  # 降级
-
-        if len(video_urls) == 1:
-            return video_urls[0][2]
-
-        # ── 3. 下载视频到临时目录 ──
-        print(f"[Agent] 下载 {len(video_urls)} 段视频...")
-        tmpdir = tempfile.mkdtemp(prefix="wan22_")
-        video_files = []
-        for i, label, url in sorted(video_urls):
-            fpath = os.path.join(tmpdir, f"shot_{i+1}_{label}.mp4")
-            try:
-                r = httpx.get(url, timeout=120)
-                r.raise_for_status()
-                with open(fpath, "wb") as f:
-                    f.write(r.content)
-                video_files.append(fpath)
-                print(f"[Agent] 下载完成: {fpath} ({len(r.content)/1024:.0f}KB)")
-            except Exception as e:
-                print(f"[Agent] 下载失败: {e}")
-
-        if len(video_files) < 2:
-            return video_urls[0][2] if video_urls else None
-
-        # ── 4. ffmpeg 交叉淡入淡出拼接 ──
-        merged = os.path.join(tmpdir, "merged.mp4")
+        tmpdir = tempfile.mkdtemp(prefix="snack_video_")
         try:
-            # 获取每段时长
-            durations = []
-            for v in video_files:
-                probe = subprocess.run(
-                    ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                     "-of", "csv=p=0", v],
-                    capture_output=True, text=True, check=True,
-                )
-                durations.append(float(probe.stdout.strip()))
+            video_files = []
+            for index, label, url in sorted(video_urls):
+                video_path = os.path.join(tmpdir, f"shot_{index + 1}.mp4")
+                response = httpx.get(url, timeout=180, follow_redirects=True)
+                response.raise_for_status()
+                with open(video_path, "wb") as video_file:
+                    video_file.write(response.content)
+                video_files.append(video_path)
 
-            xfade = 0.4
-            if len(video_files) == 3:
-                d0, d1, d2 = durations
-                filter_str = (
-                    f"[0:v][1:v]xfade=transition=fade:duration={xfade}:offset={d0 - xfade}[v01];"
-                    f"[v01][2:v]xfade=transition=fade:duration={xfade}:offset={d0 + d1 - 2*xfade}[vout]"
-                )
-                cmd = [
-                    "ffmpeg", "-y",
-                    "-i", video_files[0], "-i", video_files[1], "-i", video_files[2],
-                    "-filter_complex", filter_str,
-                    "-map", "[vout]", "-c:v", "libx264", "-preset", "fast",
-                    "-crf", "23", "-pix_fmt", "yuv420p", merged,
-                ]
-            else:
-                d0, d1 = durations[0], durations[1]
-                filter_str = f"[0:v][1:v]xfade=transition=fade:duration={xfade}:offset={d0 - xfade}[vout]"
-                cmd = [
-                    "ffmpeg", "-y",
-                    "-i", video_files[0], "-i", video_files[1],
-                    "-filter_complex", filter_str,
-                    "-map", "[vout]", "-c:v", "libx264", "-preset", "fast",
-                    "-crf", "23", "-pix_fmt", "yuv420p", merged,
-                ]
+            if len(video_files) != 2:
+                raise RuntimeError("未能下载完整的两个视频镜头")
 
-            subprocess.run(cmd, check=True, capture_output=True)
-            state.add_step(
-                thought=f"{len(video_files)}段视频已拼接（交叉淡入淡出 {xfade}s）",
-                action="video_concat",
-                action_input={"shots": len(video_files), "xfade": xfade},
-                observation=f"merged={merged}",
+            merged_path = os.path.join(tmpdir, "merged_10s.mp4")
+            concat_filter = (
+                "[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,"
+                "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];"
+                "[1:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,"
+                "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v1];"
+                "[v0][v1]concat=n=2:v=1:a=0,trim=duration=10,setpts=PTS-STARTPTS[vout]"
             )
-            print(f"[Agent] 拼接完成: {merged}")
-        except Exception as e:
-            print(f"[Agent] 拼接失败: {e}，降级返回第一段")
-            return video_urls[0][2] if video_urls else None
+            subprocess.run(
+                [
+                    "ffmpeg", "-y", "-i", video_files[0], "-i", video_files[1],
+                    "-filter_complex", concat_filter, "-map", "[vout]",
+                    "-c:v", "libx264", "-preset", "fast", "-crf", "21",
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart", merged_path,
+                ],
+                check=True,
+                capture_output=True,
+            )
 
-        # ── 5. TTS 口播合成（可选，依赖 edge-tts 和 ffmpeg） ──
-        final_path = os.path.join(tmpdir, "final_with_voice.mp4")
-        script_text = " ".join(s.get("copy", "") for _, _, s in sorted(
-            [(i, l, s) for i, l, _ in video_urls for s in shots if s["label"] == l], key=lambda x: x[0]
-        ))
-        # 从 shots 直接取脚本文案更可靠
-        script_text = " ".join(s["copy"] for s in shots if s.get("copy"))
-
-        if script_text:
-            try:
+            filename = f"{state.session_id}_10s.mp4"
+            final_path = os.path.join(self.output_dir, filename)
+            script_text = " ".join(shot.get("copy", "") for shot in shots if shot.get("copy"))
+            source_path = merged_path
+            if script_text:
                 voice_path = os.path.join(tmpdir, "voice.mp3")
-                subprocess.run([
-                    "edge-tts", "--voice", "zh-CN-XiaoyiNeural",
-                    "--text", script_text, "--write-media", voice_path,
-                ], check=True, capture_output=True)
-                final_path = os.path.join(tmpdir, "final_with_voice.mp4")
-                subprocess.run([
-                    "ffmpeg", "-y", "-i", merged, "-i", voice_path,
-                    "-c:v", "copy", "-c:a", "aac", "-shortest",
-                    "-map", "0:v:0", "-map", "1:a:0", final_path,
-                ], check=True, capture_output=True)
-                print(f"[Agent] 口播合成完成: {final_path}")
-                state.add_step(
-                    thought="TTS 口播已叠加到拼接视频",
-                    action="voiceover",
-                    action_input={"script": script_text[:60]},
-                    observation=f"final={final_path}",
-                )
-            except Exception as e:
-                print(f"[Agent] 口播合成失败（非致命）: {e}")
-                final_path = merged
+                voiced_path = os.path.join(tmpdir, "voiced_10s.mp4")
+                try:
+                    subprocess.run(
+                        [
+                            "edge-tts", "--voice", "zh-CN-XiaoyiNeural",
+                            "--text", script_text, "--write-media", voice_path,
+                        ],
+                        check=True,
+                        capture_output=True,
+                        timeout=120,
+                    )
+                    subprocess.run(
+                        [
+                            "ffmpeg", "-y", "-i", merged_path, "-i", voice_path,
+                            "-filter_complex", "[1:a]apad=pad_dur=10[a]",
+                            "-map", "0:v:0", "-map", "[a]", "-c:v", "copy",
+                            "-c:a", "aac", "-t", "10", "-movflags", "+faststart", voiced_path,
+                        ],
+                        check=True,
+                        capture_output=True,
+                    )
+                    source_path = voiced_path
+                    state.add_step(
+                        thought="10秒口播已合成",
+                        action="voiceover",
+                        action_input={"script": script_text[:80]},
+                        observation="duration=10",
+                    )
+                except Exception as error:
+                    print(f"[Agent] 口播合成失败，保留无声成片: {error}")
 
-        # ── 6. 返回结果 ──
-        # Wan2.2 生成的视频是临时 URL，需要已下载的本地文件
-        # 实际使用时需要上传到静态服务目录
-        return video_urls[0][2]  # 暂时返回第一段 URL 兼容现有流程
+            shutil.copy2(source_path, final_path)
+            state.add_step(
+                thought="两个真实图生视频镜头已拼接并永久保存",
+                action="video_concat",
+                action_input={"shots": 2, "target_duration": 10},
+                observation=f"output=/outputs/{filename}",
+            )
+            return f"/outputs/{filename}", final_path
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def _parse_bundle(self, content: str) -> dict:
         """从 LLM 输出中解析 Creative Bundle JSON"""

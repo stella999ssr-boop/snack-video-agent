@@ -7,7 +7,7 @@ import os
 
 class Settings:
     PROJECT_NAME = "零食投流素材生成 Agent"
-    VERSION = "0.2.0"
+    VERSION = "0.3.0"
 
     # DashScope (通义千问 + 通义万相)
     DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
@@ -22,6 +22,10 @@ class Settings:
     SQLITE_PATH = os.getenv("SQLITE_PATH", "./data/snack_agent.db")
     CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma")
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./static/uploads")
+    OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./static/outputs")
+
+    # 公开部署的访问保护；密码只保存在部署平台环境变量中
+    SITE_ACCESS_PASSWORD = os.getenv("SITE_ACCESS_PASSWORD", "")
 
     # 服务
     HOST = os.getenv("HOST", "127.0.0.1")

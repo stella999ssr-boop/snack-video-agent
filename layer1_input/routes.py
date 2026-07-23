@@ -80,10 +80,17 @@ async def get_status(request_id: str):
             "message": "任务排队中或 request_id 不存在",
         }
 
+    if state.stage.value == "failed":
+        status = "failed"
+    elif state.is_complete:
+        status = "done"
+    else:
+        status = "running"
+
     response = {
         "request_id": request_id,
         "session_id": state.session_id,
-        "status": "done" if state.is_complete else "running",
+        "status": status,
         "stage": state.stage.value,
         "steps": state.step_count,
         "error": state.error,

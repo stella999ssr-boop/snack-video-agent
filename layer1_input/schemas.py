@@ -53,7 +53,7 @@ class CreativeInput(BaseModel):
 
     # 用户偏好（可选覆写）
     preferred_style: Optional[str] = Field(None, description="用户指定风格，如 '知识科普型'")
-    target_duration: Optional[int] = Field(None, description="目标视频时长（秒），默认5-8")
+    target_duration: int = Field(10, ge=10, le=10, description="目标视频时长（秒），当前固定为10")
 
 
 class CreativeInputResponse(BaseModel):

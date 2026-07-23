@@ -5,9 +5,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import Response
+from starlette.responses import JSONResponse, RedirectResponse, Response
 import os
 
+from access_control import AccessControl
 from config import settings
 from layer1_input import router as layer1_router
 from layer1_input import archive_router, strategy_router, feedback_router
@@ -36,6 +37,8 @@ agent = CreativeAgent(
     dashscope_api_key=settings.DASHSCOPE_API_KEY,
     demo_mode=(settings.AGENT_MODE == "demo"),
     enable_video=settings.LIVE_ENABLE_VIDEO,
+    upload_dir=settings.UPLOAD_DIR,
+    output_dir=settings.OUTPUT_DIR,
 )
 print(f"[main] demo_mode={settings.AGENT_MODE == 'demo'}, enable_video={settings.LIVE_ENABLE_VIDEO}")
 
@@ -74,6 +77,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+access_control = AccessControl(settings.SITE_ACCESS_PASSWORD)
+public_paths = {"/health", "/auth/login"}
+
+
+@app.middleware("http")
+async def require_site_password(request: Request, call_next):
+    """保护页面、API、上传素材和成片，健康检查保持公开。"""
+    path = request.url.path
+    if path in public_paths:
+        return await call_next(request)
+
+    if not access_control.enabled:
+        if settings.AGENT_MODE == "live":
+            return JSONResponse(
+                {
+                    "detail": "SITE_ACCESS_PASSWORD is not configured",
+                    "action": "Add SITE_ACCESS_PASSWORD in Railway Variables",
+                },
+                status_code=503,
+            )
+        return await call_next(request)
+
+    if access_control.is_authenticated(request):
+        return await call_next(request)
+
+    if path.startswith("/api/"):
+        return JSONResponse({"detail": "Authentication required"}, status_code=401)
+    return access_control.login_redirect(path)
+
 
 @app.middleware("http")
 async def add_no_cache_header(request: Request, call_next):
@@ -85,6 +117,24 @@ async def add_no_cache_header(request: Request, call_next):
         response.headers["Expires"] = "0"
     return response
 
+
+@app.get("/auth/login")
+async def login_page(request: Request, next: str = "/"):
+    if access_control.is_authenticated(request):
+        return RedirectResponse(access_control.normalize_next_path(next), status_code=303)
+    return access_control.login_page(next_path=next)
+
+
+@app.post("/auth/login")
+async def login(request: Request):
+    return await access_control.login(request)
+
+
+@app.post("/auth/logout")
+async def logout():
+    return access_control.logout()
+
+
 app.include_router(layer1_router)
 app.include_router(archive_router)
 app.include_router(strategy_router)
@@ -94,6 +144,8 @@ app.include_router(upload_router)
 # 用户上传文件单独挂载；生产环境可通过 UPLOAD_DIR 指向持久化磁盘。
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
+app.mount("/outputs", StaticFiles(directory=settings.OUTPUT_DIR), name="outputs")
 
 
 @app.get("/health")
@@ -103,6 +155,7 @@ async def health():
         "version": settings.VERSION,
         "mode": settings.AGENT_MODE,
         "video_enabled": settings.LIVE_ENABLE_VIDEO,
+        "access_protected": access_control.enabled,
     }
 
 

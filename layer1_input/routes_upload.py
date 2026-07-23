@@ -11,7 +11,7 @@ UPLOAD_DIR = os.getenv(
     "UPLOAD_DIR",
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads"),
 )
-ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 MAX_SIZE = 50 * 1024 * 1024  # 50MB
 
@@ -23,7 +23,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def upload_image(file: UploadFile = File(...)):
     """上传商品图片，返回可访问的 URL"""
     if file.content_type and file.content_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail=f"不支持的图片格式: {file.content_type}，仅支持 JPG/PNG/WebP/GIF")
+        raise HTTPException(status_code=400, detail=f"不支持的图片格式: {file.content_type}，仅支持 JPG/PNG/WebP/BMP")
 
     content = await file.read()
     if len(content) > MAX_SIZE:

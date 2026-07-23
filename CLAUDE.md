@@ -23,6 +23,8 @@ python main.py
 DASHSCOPE_API_KEY=sk-xxx    # 阿里云 DashScope
 AGENT_MODE=live             # demo=本地规则 / live=LLM+视频
 LIVE_ENABLE_VIDEO=true      # 是否调用 Wan2.2 生成视频
+OUTPUT_DIR=/data/outputs    # Railway 持久化成片目录
+SITE_ACCESS_PASSWORD=xxx    # 公网访问密码，只放部署平台环境变量
 ```
 
 ## 关键文件
@@ -33,13 +35,14 @@ LIVE_ENABLE_VIDEO=true      # 是否调用 Wan2.2 生成视频
 | `config.py` | 全局配置，从环境变量读取 |
 | `layer6_execution/agent.py` | Agent 核心编排（ReAct + Controller Pipeline） |
 | `layer4_tools/tools/wan22.py` | Wan2.2 视频生成工具 |
-| `generate_video.py` | 独立的多镜视频生成脚本（3 × 5s = 15s） |
+| `generate_video.py` | 独立的 10 秒图生视频诊断脚本（2 × 5s） |
 | `add_voiceover.py` | TTS 口播 + 音视频合成 |
 | `static/index.html` | 前端 SPA |
 
 ## 新增功能时注意
 
 - Demo 和 Live 两套路径都要覆盖（`_demo_generate` 和 `_llm_generate`）
-- 多镜视频用 `_generate_multi_shot_video`，自动处理并行提交 + ffmpeg 拼接 + 口播
+- 真实成片用 `_generate_10s_video`：商品主图 Base64 输入、2 × 5s I2V、ffmpeg 拼接、持久化和口播
+- Live 模式必须配置 `SITE_ACCESS_PASSWORD`，`/health` 保持公开供 Railway 检查
 - 记忆系统是 SQLite + ChromaDB 双存储，素材存档在 `data/` 目录
 - 所有 API Key 必须从环境变量读取，不能硬编码

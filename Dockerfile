@@ -2,7 +2,11 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    SQLITE_PATH=/data/snack_agent.db \
+    CHROMA_PATH=/data/chroma \
+    UPLOAD_DIR=/data/uploads \
+    OUTPUT_DIR=/data/outputs
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
@@ -15,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /data/chroma /data/uploads /app/static/uploads
+RUN mkdir -p /data/chroma /data/uploads /data/outputs /app/static/uploads /app/static/outputs
 
 EXPOSE 8000
 

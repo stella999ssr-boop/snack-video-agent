@@ -128,7 +128,7 @@ tailwind.config = {
           <div class="tag-input field rounded-xl px-3 py-2 flex flex-wrap gap-1 min-h-[46px] cursor-text" data-field="selling_points"><input type="text" class="tag-inner-input border-0 bg-transparent outline-none text-sm flex-1 min-w-[120px] py-1" placeholder="输入后回车，如：非油炸"></div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5">商品主图 <span class="text-xs text-gray-400 font-normal">推荐上传，画面更准确</span></label>
+          <label class="block text-sm font-semibold mb-1.5">商品主图 <span class="text-primary">*</span> <span class="text-xs text-gray-400 font-normal">用于真实图生视频</span></label>
           <label class="field flex items-center gap-3 rounded-xl p-3 cursor-pointer hover:border-primary" id="main-image-zone">
             <input type="file" accept="image/*" class="hidden" id="main-image-input" onchange="handleFilePick(this, 'main-image-preview', 'main-image-url')">
             <div class="w-14 h-14 rounded-xl bg-[#f3efe5] flex items-center justify-center overflow-hidden shrink-0"><img id="main-image-preview" class="hidden w-full h-full object-cover"><i class="fa fa-cloud-upload text-xl text-primary" id="main-image-icon"></i></div>
@@ -165,11 +165,12 @@ tailwind.config = {
           <div class="phone-shell">
             <div class="phone-screen flex items-center justify-center">
               <div class="phone-notch"></div>
-              <div id="video-empty" class="text-center px-8"><div class="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-4"><i class="fa fa-play text-primary text-xl"></i></div><p class="font-bold">你的广告将在这里出现</p><p class="text-xs leading-5 text-white/40 mt-2">9:16 竖屏 · 三镜结构<br>AI 生成画面与投放文案</p></div>
+              <div id="video-empty" class="text-center px-8"><div class="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-4"><i class="fa fa-play text-primary text-xl"></i></div><p class="font-bold">你的广告将在这里出现</p><p class="text-xs leading-5 text-white/40 mt-2">10 秒 · 9:16 竖屏 · 双镜结构<br>真实商品图参与生成</p></div>
               <div id="video-card" class="hidden absolute inset-0"><video id="result-video" class="w-full h-full object-cover" controls playsinline></video></div>
             </div>
           </div>
-          <div class="flex gap-2 mt-4"><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">720P</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">AI VIDEO</span></div>
+          <div class="flex gap-2 mt-4"><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">10 秒</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">720P</span></div>
+          <a id="download-video" class="hidden mt-3 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#ed4826] transition" download><i class="fa fa-download mr-1"></i>下载 10 秒成片</a>
         </div>
 
         <div class="min-w-0">
@@ -178,7 +179,7 @@ tailwind.config = {
             <div class="space-y-2.5" id="stage-list">
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="0"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="0"></div><span class="stage-label text-sm text-white/45">分析商品与核心卖点</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="1"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="1"></div><span class="stage-label text-sm text-white/45">检索同品类历史素材</span></div>
-              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="2"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="2"></div><span class="stage-label text-sm text-white/45">生成广告策略与三镜脚本</span></div>
+              <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="2"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="2"></div><span class="stage-label text-sm text-white/45">生成 10 秒双镜脚本</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="3"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="3"></div><span class="stage-label text-sm text-white/45">渲染竖屏视频并完成拼接</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="4"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="4"></div><span class="stage-label text-sm text-white/45">质量评分与广告合规检查</span></div>
               <div class="stage-item flex items-center gap-3 p-3 rounded-xl bg-white/[.04]" data-stage-item="5"><div class="stage-dot w-6 h-6 rounded-full bg-white/5 shrink-0" data-stage="5"></div><span class="stage-label text-sm text-white/45">素材生成完成</span></div>
@@ -510,7 +511,7 @@ function updateProgress(stage) {
   const stageIndexes = { analyze:0, searching:1, generating:2, rendering:3, quality_checking:4, compliance_checking:4, retrying:3, done:5 };
   const messages = {
     analyze:'正在理解商品信息与核心卖点…', searching:'正在检索同品类历史素材与策略…',
-    generating:'正在生成创意方向与三镜脚本…', rendering:'正在调用 Wan2.2 渲染竖屏画面…',
+    generating:'正在生成 10 秒双镜脚本…', rendering:'正在用商品主图生成两个 5 秒镜头…',
     quality_checking:'视频已生成，正在完成质量与合规检查…', compliance_checking:'正在进行广告合规检查…',
     retrying:'检测到可优化项，正在自动调整素材…', done:'全部流程完成，素材已准备好'
   };
@@ -605,6 +606,12 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
 
   const mainImage = document.getElementById('main-image-url').value || null;
   const productVideo = document.getElementById('video-url').value || null;
+  if (!mainImage) {
+    toast('请先上传商品主图，真实视频生成必须使用商品图片', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
+    return;
+  }
 
   const body = {
     product_name: fd.get('product_name'),
@@ -627,6 +634,7 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
       product_images: extraImages.length > 0 ? extraImages : null,
       product_video: productVideo,
     },
+    target_duration: 10,
   };
 
   try {
@@ -684,6 +692,9 @@ function showResult(data) {
     document.getElementById('video-card').classList.remove('hidden');
     document.getElementById('video-empty').classList.add('hidden');
     document.getElementById('result-video').src = r.video_url;
+    const download = document.getElementById('download-video');
+    download.href = r.video_url;
+    download.classList.remove('hidden');
   }
 
   // 分镜
@@ -751,6 +762,7 @@ function resetForm() {
   document.getElementById('progress-panel').classList.remove('hidden');
   document.getElementById('video-card').classList.add('hidden');
   document.getElementById('video-empty').classList.remove('hidden');
+  document.getElementById('download-video').classList.add('hidden');
   document.getElementById('quality-pill').classList.add('hidden');
   document.getElementById('compliance-pill').classList.add('hidden');
   document.getElementById('generate-form').reset();

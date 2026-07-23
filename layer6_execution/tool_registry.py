@@ -60,13 +60,13 @@ TOOL_DEFINITIONS = [
                     },
                     "duration": {
                         "type": "integer",
-                        "enum": [5, 8, 10],
-                        "description": "视频时长（秒），默认 5",
+                        "enum": [5],
+                        "description": "单镜时长固定为 5 秒；10 秒成片由两个镜头拼接",
                     },
                     "resolution": {
                         "type": "string",
-                        "enum": ["720p", "1080p"],
-                        "description": "分辨率，默认 720p",
+                        "enum": ["720P", "1080P"],
+                        "description": "分辨率，默认 720P",
                     },
                 },
                 "required": ["prompt"],
@@ -91,8 +91,8 @@ TOOL_DEFINITIONS = [
                     },
                     "duration": {
                         "type": "integer",
-                        "enum": [5, 8, 10],
-                        "description": "视频时长（秒），默认 5",
+                        "enum": [5],
+                        "description": "单镜时长固定为 5 秒；10 秒成片由两个镜头拼接",
                     },
                 },
                 "required": ["image_url", "prompt"],
@@ -186,7 +186,7 @@ class ToolRegistry:
         self,
         prompt: str,
         duration: int = 5,
-        resolution: str = "720p",
+        resolution: str = "720P",
     ) -> dict:
         """文生视频"""
         result = self.wan22.t2v(
@@ -211,6 +211,7 @@ class ToolRegistry:
             image_url=image_url,
             prompt=prompt,
             duration=duration,
+            resolution="720P",
         )
         return {
             "task_id": result.task_id,

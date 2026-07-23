@@ -32,7 +32,7 @@ layer7_output     → 输出/反馈/报告层
 | `config.py` | 全局配置（环境变量驱动） |
 | `layer6_execution/agent.py` | Agent 核心，ReAct 循环 + 多镜视频生成逻辑 |
 | `layer4_tools/tools/wan22.py` | Wan2.2 T2V/I2V 工具封装 |
-| `generate_video.py` | 独立 15s 多镜视频生成脚本（3段 × 5s + ffmpeg 拼接） |
+| `generate_video.py` | 独立 10 秒图生视频诊断脚本（2段 × 5s + ffmpeg 拼接） |
 | `add_voiceover.py` | TTS 口播 + 音视频合成 |
 | `static/index.html` | 前端 SPA（素材生成/素材管理/效果反馈 三页） |
 
@@ -47,6 +47,7 @@ layer7_output     → 输出/反馈/报告层
 DASHSCOPE_API_KEY=sk-你的key    # 阿里云 DashScope
 AGENT_MODE=demo                 # 或 live
 LIVE_ENABLE_VIDEO=false         # live 模式下是否真的调 Wan2.2
+OUTPUT_DIR=./static/outputs      # 10秒成片保存目录
 PORT=8000
 ```
 
@@ -107,7 +108,7 @@ Wan2.2 返回了什么错误？看一下 DashScope API 的请求和响应
 1. 所有 API Key 必须从环境变量读取，绝不能硬编码
 2. 新增功能要同时支持 demo 模式（本地规则）和 live 模式（LLM+API）
 3. 修改 agent.py 时要小心 ReAct 循环的状态管理
-4. 多镜视频生成走 _generate_multi_shot_video，不要用旧的单镜方法
+4. 真实视频生成走 _generate_10s_video，固定 2 × 5 秒图生视频并保存成片
 5. 前端是原生 HTML 单文件，零构建依赖，不要引入 npm/webpack
 6. 提交代码前确保 python main.py 能正常启动
 ```

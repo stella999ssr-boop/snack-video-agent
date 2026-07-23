@@ -146,7 +146,10 @@ class VideoQualityChecker:
         dimensions.append(dim_ecommerce)
 
         # 维度7: 时间结构 (5分)
-        dim_timing = self._check_timing(metadata)
+        dim_timing = self._check_timing(
+            metadata,
+            target_duration=int(script.get("target_duration", 10)),
+        )
         dimensions.append(dim_timing)
 
         total = sum(d.score for d in dimensions)
@@ -429,13 +432,13 @@ class VideoQualityChecker:
     # 维度7: 时间结构 5分
     # ═══════════════════════════════════════════
 
-    def _check_timing(self, metadata: dict) -> DimensionScore:
+    def _check_timing(self, metadata: dict, target_duration: int = 10) -> DimensionScore:
         """时长是否在目标范围内"""
         if not metadata:
             return DimensionScore(dimension="时间结构", score=3, max_score=5, detail="无元数据")
 
         duration = metadata.get("duration", 0)
-        target = metadata.get("target_duration", 8)
+        target = target_duration
 
         diff = abs(duration - target)
         if diff <= 1:

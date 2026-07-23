@@ -55,6 +55,7 @@ class AgentState:
     # 生成结果
     creative_bundle: dict = field(default_factory=dict)
     video_url: Optional[str] = None
+    video_path: Optional[str] = None
     video_task_id: Optional[str] = None
 
     # 质量 & 合规

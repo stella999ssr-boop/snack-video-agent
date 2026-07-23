@@ -12,7 +12,7 @@
 
 - 🧠 **创意策略分析** — 结合历史素材库和用户偏好，确定最优创意方向
 - ✍️ **短视频脚本生成** — 分镜脚本 + 钩子文案 + 投放标题
-- 🎬 **Wan2.2 视频生成** — 调用通义万相 T2V 模型生成竖屏广告视频
+- 🎬 **10 秒真实商品视频** — 商品主图驱动两段 Wan2.2 I2V，拼接并永久保存为竖屏成片
 - 👥 **人群定向建议** — 基于千川标签库给出精准定向方案
 - ✅ **质量评估 + 合规检测** — 自动评分、审核敏感词和违规内容
 - 📊 **效果反馈闭环** — 关联千川广告数据，策略效果排行，持续优化
@@ -26,7 +26,7 @@
 static/uploads/final_demo.mp4   2.0MB · 5秒 · 9:16 竖屏 · 720P · 已合成口播
 ```
 
-> Wan2.2 T2V 生成 → edge-tts 女声口播 → moviepy 音视频合成
+> 商品主图 → 2 × 5 秒 Wan2.2 I2V → ffmpeg 拼成 10 秒 → edge-tts 口播
 
 ## 架构设计
 
@@ -58,10 +58,10 @@ snack-video-agent/
   → ① 输入解析（类目级联、标签提取、图片上传）
   → ② LLM 分析（通义千问 qwen-plus）
   → ③ 记忆检索（同品类历史素材 + 策略效果）
-  → ④ 视频生成（通义万相 Wan2.2 T2V，5秒竖屏）
-  → ⑤ 质量评估 + 合规检测
-  → ⑥ 素材存档（SQLite + ChromaDB）
-  → ⑦ 输出 Creative Bundle（视频 + 脚本 + 标题 + 人群）
+  → ④ 视频生成（通义万相 Wan2.2 I2V，2 × 5秒）
+  → ⑤ 10秒竖屏成片拼接并保存到 /outputs
+  → ⑥ 质量评估 + 合规检测
+  → ⑦ 素材存档并输出视频、脚本、标题和人群
 ```
 
 ## 快速开始
@@ -92,7 +92,7 @@ python main.py
 |------|----------|----------|
 | 脚本/标题/人群 | ✅ 规则生成 | ✅ LLM 生成 |
 | Wan2.2 视频 | ❌ | ✅ |
-| TTS 口播 | ❌ | ❌（脚本独立运行） |
+| TTS 口播 | ❌ | ✅（失败时保留无声成片） |
 | 需要 API Key | 不需要 | 需要 |
 
 ### 开启 Live 模式
@@ -120,8 +120,15 @@ python main.py
 | `DASHSCOPE_API_KEY` | DashScope API Key | - |
 | `AGENT_MODE` | `demo` / `live` | `demo` |
 | `LIVE_ENABLE_VIDEO` | live 模式下生成 Wan2.2 视频 | `false` |
+| `SQLITE_PATH` | SQLite 数据库路径 | `./data/snack_agent.db` |
+| `CHROMA_PATH` | ChromaDB 数据路径 | `./data/chroma` |
+| `UPLOAD_DIR` | 商品素材保存目录 | `./static/uploads` |
+| `OUTPUT_DIR` | 10 秒成片保存目录 | `./static/outputs` |
+| `SITE_ACCESS_PASSWORD` | 公网站点访问密码，保护付费生成接口 | 本地 Demo 可留空；Live 必填 |
 | `HOST` | 服务监听地址 | `127.0.0.1` |
 | `PORT` | 服务端口 | `8000` |
+
+> `SITE_ACCESS_PASSWORD` 只应配置在 Railway Variables 等部署平台的秘密环境变量中，不能把真实密码写入 `.env.example` 或提交到 GitHub。Live 模式未配置密码时，除 `/health` 外的请求会返回 503，避免付费接口意外公开。
 
 ## API 端点
 
