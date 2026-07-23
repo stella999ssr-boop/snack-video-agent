@@ -16,6 +16,8 @@ from enum import Enum
 
 import httpx
 
+from security import safe_error_message
+
 
 class TaskStatus(str, Enum):
     PENDING = "PENDING"
@@ -48,12 +50,12 @@ class Wan22Tool:
     SUPPORTED_RESOLUTIONS = {"720P", "1080P"}
 
     def __init__(self, api_key: str, timeout: int = 300):
-        self.api_key = api_key
+        self.api_key = (api_key or "").strip()
         self.timeout = timeout
         self._client = httpx.Client(
             base_url=self.BASE_URL,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
                 "X-DashScope-Async": "enable",
             },
@@ -93,9 +95,9 @@ class Wan22Tool:
                 task_id = data["output"]["task_id"]
                 print(f"[Wan22] t2v 使用模型 {model}, task_id={task_id}")
                 return Wan22Result(task_id=task_id, status=TaskStatus.PENDING)
-            except Exception as e:
-                print(f"[Wan22] t2v 模型 {model} 失败: {e}")
-                last_error = e
+            except Exception as error:
+                print(f"[Wan22] t2v 模型 {model} 失败: {safe_error_message(error)}")
+                last_error = error
                 continue
         raise last_error or RuntimeError("所有 T2V 模型均不可用")
 
@@ -135,9 +137,9 @@ class Wan22Tool:
                 task_id = data["output"]["task_id"]
                 print(f"[Wan22] i2v 使用模型 {model}, task_id={task_id}")
                 return Wan22Result(task_id=task_id, status=TaskStatus.PENDING)
-            except Exception as e:
-                print(f"[Wan22] i2v 模型 {model} 失败: {e}")
-                last_error = e
+            except Exception as error:
+                print(f"[Wan22] i2v 模型 {model} 失败: {safe_error_message(error)}")
+                last_error = error
                 continue
         raise last_error or RuntimeError("所有 I2V 模型均不可用")
 

@@ -13,6 +13,7 @@ from typing import Optional
 
 from layer3_memory.memory_manager import MemoryManager
 from layer4_tools.tools.wan22 import Wan22Tool
+from security import safe_error_message
 
 
 # ═══════════════════════════════════════════════════
@@ -133,8 +134,8 @@ class ToolRegistry:
         try:
             result = handler(**arguments)
             return json.dumps(result, ensure_ascii=False, indent=2)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
+        except Exception as error:
+            return json.dumps({"error": safe_error_message(error)}, ensure_ascii=False)
 
     # ─── 工具实现 ─────────────────────────────────
 

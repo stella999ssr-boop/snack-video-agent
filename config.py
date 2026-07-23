@@ -10,7 +10,8 @@ class Settings:
     VERSION = "0.3.0"
 
     # DashScope (通义千问 + 通义万相)
-    DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+    # 部署平台粘贴变量时可能意外带入换行；统一清理首尾空白。
+    DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "").strip()
 
     # Agent 模式: demo=本地规则生成(无需API), live=调用DashScope LLM
     AGENT_MODE = os.getenv("AGENT_MODE", "demo")

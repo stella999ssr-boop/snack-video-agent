@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from security import safe_error_message
 from .schemas import CreativeInput, CreativeInputResponse
 
 router = APIRouter(prefix="/api/v1/creative", tags=["素材生成"])
@@ -30,11 +31,11 @@ def _run_agent(request_id: str, input_data: CreativeInput):
         product = input_data.model_dump()
         state = _agent.run(product, session_id=request_id)
         _states[request_id] = state
-    except Exception as e:
+    except Exception as error:
         from layer6_execution.state import AgentState, AgentStage
         state = AgentState(session_id=request_id)
         state.stage = AgentStage.FAILED
-        state.error = str(e)
+        state.error = safe_error_message(error)
         _states[request_id] = state
 
 
@@ -93,7 +94,7 @@ async def get_status(request_id: str):
         "status": status,
         "stage": state.stage.value,
         "steps": state.step_count,
-        "error": state.error,
+        "error": safe_error_message(state.error) if state.error else None,
     }
 
     # 如果已完成，附加完整结果

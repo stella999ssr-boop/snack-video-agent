@@ -76,7 +76,7 @@ def generate_10s_ad(
     scene: str = "追剧",
     output_path: str = "output/final_10s_ad.mp4",
 ) -> str:
-    api_key = os.getenv("DASHSCOPE_API_KEY", "")
+    api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("请先设置环境变量 DASHSCOPE_API_KEY")
 

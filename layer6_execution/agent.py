@@ -40,6 +40,7 @@ from layer3_memory.schemas import CreativeRecord
 from layer4_tools.tools.wan22 import Wan22Tool, Wan22Result, TaskStatus
 from layer4_tools.quality.quality_checker import VideoQualityChecker
 from layer4_tools.compliance.review_router import run_compliance_pipeline, ReviewDecision
+from security import safe_error_message
 
 
 class CreativeAgent:
@@ -69,6 +70,7 @@ class CreativeAgent:
         upload_dir: str = "./static/uploads",
         output_dir: str = "./static/outputs",
     ):
+        dashscope_api_key = (dashscope_api_key or "").strip()
         self.memory = memory_manager
         self.user_id = user_id
         self.demo_mode = demo_mode or not dashscope_api_key
@@ -117,9 +119,10 @@ class CreativeAgent:
 
         try:
             self._react_loop(state)
-        except Exception as e:
+        except Exception as error:
             state.stage = AgentStage.FAILED
-            state.error = str(e)
+            state.error = safe_error_message(error)
+            print(f"[Agent] 任务失败: {state.error}")
 
         return state
 

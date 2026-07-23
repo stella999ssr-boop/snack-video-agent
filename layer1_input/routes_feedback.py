@@ -7,6 +7,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from security import safe_error_message
+
 router = APIRouter(prefix="/api/v1/feedback", tags=["效果反馈"])
 
 # 由 main.py 注入
@@ -57,8 +59,8 @@ async def create_link(req: LinkRequest):
             advertiser_id=req.advertiser_id,
         )
         return {"status": "linked", "data": link.__dict__ if hasattr(link, "__dict__") else str(link)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=safe_error_message(error))
 
 
 @router.delete("/link")
@@ -70,8 +72,8 @@ async def delete_link(req: LinkDeleteRequest):
     try:
         _linker.unlink(creative_id=req.creative_id, ad_id=req.ad_id)
         return {"status": "unlinked", "creative_id": req.creative_id, "ad_id": req.ad_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=safe_error_message(error))
 
 
 @router.get("/links")
