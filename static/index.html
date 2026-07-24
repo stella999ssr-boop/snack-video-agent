@@ -157,6 +157,26 @@ tailwind.config = {
         <button type="button" id="recover-video-btn" onclick="recoverLatestVideo()" class="hidden w-full py-3 rounded-xl border border-primary/25 bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition items-center justify-center gap-2">
           <i class="fa fa-refresh"></i>复用上次 Wan 片段重新合成
         </button>
+        <details id="manual-recovery-panel" class="rounded-xl border border-primary/20 bg-primary/[.06]">
+          <summary class="flex items-center justify-between cursor-pointer px-3.5 py-3 text-sm font-semibold text-primary">
+            <span><i class="fa fa-history mr-2"></i>有旧 task_id？手动恢复视频</span>
+            <span class="text-[11px] font-normal text-gray-400">不重新生成 <i class="fa fa-angle-down ml-1"></i></span>
+          </summary>
+          <div class="space-y-3 border-t border-primary/10 px-3.5 py-3">
+            <div>
+              <label class="block text-xs font-semibold mb-1.5">第 1 段 task_id</label>
+              <input type="text" id="manual-task-id-1" class="field w-full rounded-xl px-3 py-2.5 text-xs font-mono" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1.5">第 2 段 task_id</label>
+              <input type="text" id="manual-task-id-2" class="field w-full rounded-xl px-3 py-2.5 text-xs font-mono" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+            </div>
+            <button type="button" id="manual-recover-btn" onclick="recoverManualVideo()" class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-[#557760] transition flex items-center justify-center gap-2">
+              <i class="fa fa-link"></i>只读取并合成旧片段
+            </button>
+            <p class="text-[11px] leading-5 text-gray-400">只查询这两个已有任务并下载成片，不调用 Qwen，也不会新建 Wan2.2 任务。</p>
+          </div>
+        </details>
         <p class="text-[11px] text-gray-400 text-center">将调用 AI 生成视频，预计需要数分钟</p>
       </form>
     </div>
@@ -951,6 +971,48 @@ async function recoverLatestVideo() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa fa-refresh"></i>复用上次 Wan 片段重新合成';
+  }
+}
+
+async function recoverManualVideo() {
+  const taskId1 = document.getElementById('manual-task-id-1').value.trim();
+  const taskId2 = document.getElementById('manual-task-id-2').value.trim();
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(taskId1) || !uuidPattern.test(taskId2)) {
+    toast('请完整填写两个正确的 task_id', 'error');
+    return;
+  }
+  if (taskId1.toLowerCase() === taskId2.toLowerCase()) {
+    toast('两段视频的 task_id 不能相同', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('manual-recover-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>正在读取旧任务';
+  try {
+    const resp = await fetch(`${API}/creative/recovery/manual`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        shot_1_task_id: taskId1,
+        shot_2_task_id: taskId2,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(formatApiError(data));
+    prepareLiveScript(data.request_id);
+    document.getElementById('progress-panel').classList.remove('hidden');
+    document.getElementById('result-area').classList.add('hidden');
+    updateProgress('rendering', data.message);
+    document.getElementById('manual-recovery-panel').open = false;
+    toast('正在复用两个旧 task_id，不会重新提交 Wan2.2', 'success');
+    pollStatus(data.request_id);
+  } catch (error) {
+    toast(error.message || '手动恢复合成失败', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-link"></i>只读取并合成旧片段';
   }
 }
 

@@ -7,12 +7,46 @@ from contextlib import redirect_stdout
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from pydantic import ValidationError
+
+from layer1_input.routes import _build_manual_recovery_state
+from layer1_input.schemas import ManualVideoRecoveryInput
 from layer4_tools.tools.wan22 import TaskStatus, Wan22Result
 from layer6_execution.agent import CreativeAgent
 from layer6_execution.state import AgentStage, AgentState
 
 
 class ExistingWanTaskRecoveryTests(unittest.TestCase):
+    def test_manual_recovery_state_uses_exact_existing_task_ids(self):
+        first = "d9a9406e-1074-4811-8f20-606a246e547d"
+        second = "e1d5fec3-0f40-4285-948a-fc43415ae47b"
+
+        state = _build_manual_recovery_state("recover-test", first, second)
+
+        self.assertEqual(state.stage, AgentStage.RENDERING)
+        self.assertEqual(
+            [task["task_id"] for task in state.video_tasks],
+            [first, second],
+        )
+        self.assertEqual(state.product_input["recovery_source"], "manual_task_ids")
+        self.assertEqual(len(state.creative_bundle["shots"]), 2)
+        self.assertIn("未提交", state.creative_bundle["creative_rationale"])
+
+    def test_manual_recovery_requires_two_distinct_uuid_task_ids(self):
+        task_id = "d9a9406e-1074-4811-8f20-606a246e547d"
+
+        with self.assertRaises(ValidationError):
+            ManualVideoRecoveryInput(
+                shot_1_task_id=task_id,
+                shot_2_task_id=task_id,
+            )
+
+        with self.assertRaises(ValidationError):
+            ManualVideoRecoveryInput(
+                shot_1_task_id="not-a-task-id",
+                shot_2_task_id="e1d5fec3-0f40-4285-948a-fc43415ae47b",
+            )
+
     def test_recovery_reuses_task_ids_without_submitting_new_wan_jobs(self):
         class QueryOnlyWan:
             def i2v(self, **_kwargs):

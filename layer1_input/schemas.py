@@ -3,7 +3,9 @@
 14个字段，5个分类
 """
 
-from pydantic import BaseModel, Field
+from uuid import UUID
+
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 
 
@@ -62,3 +64,16 @@ class CreativeInputResponse(BaseModel):
     status: str
     message: str
     product_name: str
+
+
+class ManualVideoRecoveryInput(BaseModel):
+    """手动提供两个既有 Wan2.2 任务编号，仅用于查询与合成。"""
+
+    shot_1_task_id: UUID = Field(..., description="第 1 段 Wan2.2 task_id")
+    shot_2_task_id: UUID = Field(..., description="第 2 段 Wan2.2 task_id")
+
+    @model_validator(mode="after")
+    def require_distinct_task_ids(self):
+        if self.shot_1_task_id == self.shot_2_task_id:
+            raise ValueError("两段视频的 task_id 不能相同")
+        return self

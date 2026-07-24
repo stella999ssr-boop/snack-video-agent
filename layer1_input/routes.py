@@ -10,7 +10,11 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from config import settings
 from security import safe_error_message
 from layer6_execution.state import AgentState, AgentStage
-from .schemas import CreativeInput, CreativeInputResponse
+from .schemas import (
+    CreativeInput,
+    CreativeInputResponse,
+    ManualVideoRecoveryInput,
+)
 from .task_store import TaskStateStore
 
 router = APIRouter(prefix="/api/v1/creative", tags=["素材生成"])
@@ -121,6 +125,73 @@ def _run_video_recovery(request_id: str):
         _recovery_in_progress.discard(request_id)
 
 
+def _build_manual_recovery_state(
+    request_id: str,
+    shot_1_task_id: str,
+    shot_2_task_id: str,
+) -> AgentState:
+    """用手动输入的两个 task_id 建立最小恢复记录，不生成新脚本或视频。"""
+    return AgentState(
+        session_id=request_id,
+        stage=AgentStage.RENDERING,
+        product_input={"recovery_source": "manual_task_ids"},
+        creative_bundle={
+            "product_name": "旧 Wan2.2 视频恢复",
+            "script_type": "已有片段恢复",
+            "hook": "正在复用已生成的两段视频",
+            "shots": [
+                {"label": "镜头一", "copy": ""},
+                {"label": "镜头二", "copy": ""},
+            ],
+            "storyboard": [
+                {"time": "0–5s", "scene": "复用第 1 段已有视频", "copy": ""},
+                {"time": "5–10s", "scene": "复用第 2 段已有视频", "copy": ""},
+            ],
+            "ad_titles": [],
+            "suggested_audience": {},
+            "creative_rationale": (
+                "仅查询并合成手动输入的 Wan2.2 task_id，未提交新的视频生成任务"
+            ),
+        },
+        video_tasks=[
+            {
+                "shot": 1,
+                "label": "镜头一",
+                "task_id": shot_1_task_id,
+                "status": "PENDING",
+                "error": None,
+            },
+            {
+                "shot": 2,
+                "label": "镜头二",
+                "task_id": shot_2_task_id,
+                "status": "PENDING",
+                "error": None,
+            },
+        ],
+        video_task_id=shot_2_task_id,
+        video_stage="recovering_1",
+        progress_message="已记录两个旧 task_id，准备读取已有 Wan2.2 结果",
+    )
+
+
+def _matching_recovery_in_progress(task_ids: tuple[str, str]) -> AgentState | None:
+    """避免同一对 task_id 被连续点击并发合成。"""
+    expected = set(task_ids)
+    for request_id in _recovery_in_progress:
+        state = _states.get(request_id)
+        if state is None:
+            continue
+        existing = {
+            task.get("task_id")
+            for task in state.video_tasks
+            if task.get("task_id")
+        }
+        if existing == expected:
+            return state
+    return None
+
+
 @router.get("/categories")
 async def get_categories():
     """获取类目树（一级→二级），供前端级联下拉使用"""
@@ -199,6 +270,50 @@ async def recover_latest_video(background_tasks: BackgroundTasks):
         "request_id": state.session_id,
         "status": "accepted",
         "message": "已开始复用现有 Wan2.2 任务；不会重新提交视频生成",
+    }
+
+
+@router.post("/recovery/manual")
+async def recover_video_by_task_ids(
+    input_data: ManualVideoRecoveryInput,
+    background_tasks: BackgroundTasks,
+):
+    """
+    手动提供两个旧 task_id 并重新合成。
+
+    此入口只查询既有 Wan2.2 任务并下载结果，不会调用 i2v/t2v 提交新任务。
+    """
+    if _agent is None:
+        raise HTTPException(status_code=503, detail="Agent 未初始化")
+    if _agent.demo_mode:
+        raise HTTPException(
+            status_code=409,
+            detail="当前是 Demo 模式，无法查询 Wan2.2 任务",
+        )
+
+    task_ids = (
+        str(input_data.shot_1_task_id),
+        str(input_data.shot_2_task_id),
+    )
+    existing = _matching_recovery_in_progress(task_ids)
+    if existing is not None:
+        return {
+            "request_id": existing.session_id,
+            "status": "running",
+            "message": "这两个旧任务正在恢复合成，请勿重复操作",
+        }
+
+    request_id = f"recover-{uuid.uuid4().hex[:8]}"
+    state = _attach_state(
+        _build_manual_recovery_state(request_id, *task_ids)
+    )
+    state.checkpoint()
+    _recovery_in_progress.add(request_id)
+    background_tasks.add_task(_run_video_recovery, request_id)
+    return {
+        "request_id": request_id,
+        "status": "accepted",
+        "message": "已开始查询两个旧 task_id 并合成；不会重新提交 Wan2.2",
     }
 
 
