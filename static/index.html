@@ -154,6 +154,9 @@ tailwind.config = {
           </div>
         </details>
         <button type="submit" id="submit-btn" class="w-full py-3.5 bg-primary text-white rounded-xl font-bold hover:bg-[#557760] transition flex items-center justify-center gap-2 shadow-lg shadow-primary/20"><i class="fa fa-play-circle"></i>生成竖屏广告素材</button>
+        <button type="button" id="recover-video-btn" onclick="recoverLatestVideo()" class="hidden w-full py-3 rounded-xl border border-primary/25 bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition items-center justify-center gap-2">
+          <i class="fa fa-refresh"></i>复用上次 Wan 片段重新合成
+        </button>
         <p class="text-[11px] text-gray-400 text-center">将调用 AI 生成视频，预计需要数分钟</p>
       </form>
     </div>
@@ -616,6 +619,7 @@ function renderVideoProgress(progress) {
     submitting_2:'提交第 2 段', submitted_2:'第 2 段已提交', waiting:'等待渲染',
     rendering_1:'渲染第 1 段', rendering_2:'渲染第 2 段', downloading:'下载片段',
     merging:'拼接成片', voiceover:'合成口播', completed:'成片已保存',
+    recovering_1:'读取第 1 段', recovering_2:'读取第 2 段',
     submit_failed_1:'第 1 段失败', submit_failed_2:'第 2 段失败',
     disabled:'视频未开启', delivery_failed:'视频未生成', interrupted:'服务曾重启'
   };
@@ -886,6 +890,8 @@ async function pollStatus(requestId) {
 
     if (stage === 'done' || data.status === 'done') {
       updateProgress('done', data.message);
+      document.getElementById('recover-video-btn').classList.add('hidden');
+      document.getElementById('recover-video-btn').classList.remove('flex');
       document.getElementById('submit-btn').disabled = false;
       document.getElementById('submit-btn').innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
       if (data.result) showResult(data);
@@ -894,6 +900,10 @@ async function pollStatus(requestId) {
     }
     if (stage === 'failed' || stage === 'interrupted' || data.status === 'interrupted') {
       updateProgress(stage, data.error || data.message || '生成已中断');
+      if (data.video_recoverable) {
+        document.getElementById('recover-video-btn').classList.remove('hidden');
+        document.getElementById('recover-video-btn').classList.add('flex');
+      }
       toast(data.error || '生成失败', 'error');
       document.getElementById('submit-btn').disabled = false;
       document.getElementById('submit-btn').innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
@@ -904,6 +914,44 @@ async function pollStatus(requestId) {
     toast(error.message || '任务状态查询失败', 'error');
   }
   pollingTimer = setTimeout(() => pollStatus(requestId), 2000);
+}
+
+async function checkLatestRecovery() {
+  try {
+    const resp = await fetch(`${API}/creative/recovery/latest`);
+    const data = await resp.json();
+    const btn = document.getElementById('recover-video-btn');
+    if (resp.ok && data.recoverable) {
+      btn.classList.remove('hidden');
+      btn.classList.add('flex');
+    } else {
+      btn.classList.add('hidden');
+      btn.classList.remove('flex');
+    }
+  } catch (_) {}
+}
+
+async function recoverLatestVideo() {
+  const btn = document.getElementById('recover-video-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>正在读取已有任务';
+  try {
+    const resp = await fetch(`${API}/creative/recovery/latest`, {method:'POST'});
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(formatApiError(data));
+    prepareLiveScript(data.request_id);
+    document.getElementById('progress-panel').classList.remove('hidden');
+    document.getElementById('result-area').classList.add('hidden');
+    updateProgress('rendering', data.message);
+    toast('正在复用原 task_id，不会重新提交 Wan2.2', 'success');
+    pollStatus(data.request_id);
+  } catch (error) {
+    toast(error.message || '恢复合成失败', 'error');
+    await checkLatestRecovery();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-refresh"></i>复用上次 Wan 片段重新合成';
+  }
 }
 
 function showResult(data) {
@@ -1354,6 +1402,7 @@ async function loadStrategy() {
   }
 }
 loadCategoryTree();
+checkLatestRecovery();
 </script>
 </body>
 </html>

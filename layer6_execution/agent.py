@@ -58,6 +58,7 @@ class CreativeAgent:
 
     DASHSCOPE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     MODEL = "qwen-plus"
+    FFMPEG_ASPECT_RATIO_MODE = "decrease"
 
     def __init__(
         self,
@@ -728,6 +729,122 @@ class CreativeAgent:
         if failures:
             raise RuntimeError("视频生成失败；" + "；".join(failures))
 
+        return self._compose_video_urls(bundle, state, video_urls)
+
+    def recover_video_from_existing_tasks(
+        self,
+        state: AgentState,
+    ) -> tuple[str, str]:
+        """仅查询已保存的 Wan2.2 task_id 并重新合成，绝不创建新任务。"""
+        if self.demo_mode:
+            raise RuntimeError("Demo 模式没有可恢复的 Wan2.2 视频任务")
+        if not state.creative_bundle:
+            raise RuntimeError("该任务没有已保存的双镜脚本，无法恢复合成")
+
+        tasks = sorted(
+            (
+                task
+                for task in state.video_tasks
+                if task.get("task_id") and task.get("shot") in (1, 2)
+            ),
+            key=lambda task: task["shot"],
+        )
+        if len(tasks) != 2 or {task["shot"] for task in tasks} != {1, 2}:
+            raise RuntimeError("恢复合成需要两个已保存的 Wan2.2 task_id")
+
+        state.error = None
+        state.video_url = None
+        state.video_path = None
+        state.set_stage(
+            AgentStage.RENDERING,
+            "正在复用已保存的 Wan2.2 任务，不会重新提交视频生成",
+        )
+
+        video_urls = []
+        failures = []
+        for task in tasks:
+            shot_number = task["shot"]
+            task_id = task["task_id"]
+            label = task.get("label") or f"镜头{shot_number}"
+            state.set_video_stage(
+                f"recovering_{shot_number}",
+                f"正在读取第 {shot_number}/2 段已有 Wan2.2 结果",
+            )
+            final = self.wan22.wait(
+                task_id,
+                max_wait=600,
+                on_update=lambda update, task_id=task_id: state.update_video_task(
+                    task_id,
+                    update.status.value,
+                    safe_error_message(update.error_message)
+                    if update.error_message
+                    else None,
+                ),
+            )
+            if final.status == TaskStatus.SUCCEEDED and final.video_url:
+                video_urls.append((shot_number - 1, label, final.video_url))
+            else:
+                failures.append(
+                    f"第{shot_number}镜："
+                    f"{final.error_message or final.status.value}"
+                )
+
+        if failures:
+            raise RuntimeError("已有 Wan2.2 任务无法恢复；" + "；".join(failures))
+
+        video_url, video_path = self._compose_video_urls(
+            state.creative_bundle,
+            state,
+            video_urls,
+        )
+        state.video_url = video_url
+        state.video_path = video_path
+        state.error = None
+        state.checkpoint()
+        self._require_video_delivery(state)
+        state.set_stage(
+            AgentStage.DONE,
+            "已复用原 Wan2.2 任务完成视频合成，未重新提交生成",
+        )
+        return video_url, video_path
+
+    @staticmethod
+    def _run_ffmpeg(command: list[str], label: str):
+        """运行 FFmpeg；失败时把完整 stdout/stderr 写入 Railway 日志。"""
+        try:
+            return subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except subprocess.CalledProcessError as error:
+            stdout = error.stdout or ""
+            stderr = error.stderr or ""
+            print(
+                f"[FFmpeg] {label}失败，exit_code={error.returncode}\n"
+                f"[FFmpeg] stdout:\n{stdout}\n"
+                f"[FFmpeg] stderr:\n{stderr}"
+            )
+            detail = next(
+                (line.strip() for line in reversed(stderr.splitlines()) if line.strip()),
+                f"exit_code={error.returncode}",
+            )
+            raise RuntimeError(f"{label}失败：{detail}") from error
+
+    def _compose_video_urls(
+        self,
+        bundle: dict,
+        state: AgentState,
+        video_urls: list[tuple[int, str, str]],
+    ) -> tuple[str, str]:
+        """下载两个已有视频地址并用固定英文 FFmpeg 参数合成为成片。"""
+        shots = (bundle.get("shots") or [])[:2]
+        if len(shots) != 2:
+            raise RuntimeError("10 秒广告需要两个 5 秒镜头")
+
         tmpdir = tempfile.mkdtemp(prefix="snack_video_")
         try:
             state.set_video_stage(
@@ -749,21 +866,22 @@ class CreativeAgent:
             merged_path = os.path.join(tmpdir, "merged_10s.mp4")
             state.set_video_stage("merging", "正在将两段视频拼接为 10 秒成片")
             concat_filter = (
-                "[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,"
+                f"[0:v]fps=25,scale=720:1280:"
+                f"force_original_aspect_ratio={self.FFMPEG_ASPECT_RATIO_MODE},"
                 "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];"
-                "[1:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,"
+                f"[1:v]fps=25,scale=720:1280:"
+                f"force_original_aspect_ratio={self.FFMPEG_ASPECT_RATIO_MODE},"
                 "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v1];"
                 "[v0][v1]concat=n=2:v=1:a=0,trim=duration=10,setpts=PTS-STARTPTS[vout]"
             )
-            subprocess.run(
+            self._run_ffmpeg(
                 [
                     "ffmpeg", "-y", "-i", video_files[0], "-i", video_files[1],
                     "-filter_complex", concat_filter, "-map", "[vout]",
                     "-c:v", "libx264", "-preset", "fast", "-crf", "21",
                     "-pix_fmt", "yuv420p", "-movflags", "+faststart", merged_path,
                 ],
-                check=True,
-                capture_output=True,
+                "双镜视频拼接",
             )
 
             filename = f"{state.session_id}_10s.mp4"
@@ -784,15 +902,14 @@ class CreativeAgent:
                         capture_output=True,
                         timeout=120,
                     )
-                    subprocess.run(
+                    self._run_ffmpeg(
                         [
                             "ffmpeg", "-y", "-i", merged_path, "-i", voice_path,
                             "-filter_complex", "[1:a]apad=pad_dur=10[a]",
                             "-map", "0:v:0", "-map", "[a]", "-c:v", "copy",
                             "-c:a", "aac", "-t", "10", "-movflags", "+faststart", voiced_path,
                         ],
-                        check=True,
-                        capture_output=True,
+                        "口播音视频合成",
                     )
                     source_path = voiced_path
                     state.add_step(

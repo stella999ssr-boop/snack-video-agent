@@ -20,6 +20,7 @@ _agent = None
 # 运行时状态缓存 + SQLite 持久化。
 _states: dict = {}
 _store = TaskStateStore(settings.SQLITE_PATH)
+_recovery_in_progress: set[str] = set()
 
 
 def _save_state(state: AgentState):
@@ -84,6 +85,42 @@ def _run_agent(request_id: str, input_data: CreativeInput):
         state.set_error(safe_error_message(error))
 
 
+def _is_video_recoverable(state: AgentState) -> bool:
+    task_ids = {
+        task.get("shot"): task.get("task_id")
+        for task in state.video_tasks
+        if task.get("shot") in (1, 2) and task.get("task_id")
+    }
+    return (
+        state.stage in (AgentStage.FAILED, AgentStage.INTERRUPTED)
+        and not state.video_url
+        and bool(state.creative_bundle)
+        and len(task_ids) == 2
+    )
+
+
+def _latest_recoverable_state() -> AgentState | None:
+    for persisted_state in _store.list_all():
+        if persisted_state.session_id not in _states:
+            _attach_state(persisted_state)
+    candidates = [
+        state for state in _states.values()
+        if _is_video_recoverable(state)
+    ]
+    return max(candidates, key=lambda state: state.updated_at, default=None)
+
+
+def _run_video_recovery(request_id: str):
+    """后台复用已保存 task_id 合成视频；此路径不会调用 Wan i2v/t2v。"""
+    state = _states[request_id]
+    try:
+        _agent.recover_video_from_existing_tasks(state)
+    except Exception as error:
+        state.set_error(safe_error_message(error))
+    finally:
+        _recovery_in_progress.discard(request_id)
+
+
 @router.get("/categories")
 async def get_categories():
     """获取类目树（一级→二级），供前端级联下拉使用"""
@@ -117,6 +154,52 @@ async def create_creative(input_data: CreativeInput, background_tasks: Backgroun
         message=f"素材生成请求已接收 [{input_data.product_name}]，排队中...",
         product_name=input_data.product_name,
     )
+
+
+@router.get("/recovery/latest")
+async def get_latest_recoverable_video():
+    """返回最近一个可复用两个 Wan2.2 task_id 的失败任务。"""
+    state = _latest_recoverable_state()
+    if state is None:
+        return {"recoverable": False}
+    return {
+        "recoverable": True,
+        "request_id": state.session_id,
+        "updated_at": state.updated_at,
+        "task_count": len(state.video_tasks),
+        "in_progress": state.session_id in _recovery_in_progress,
+    }
+
+
+@router.post("/recovery/latest")
+async def recover_latest_video(background_tasks: BackgroundTasks):
+    """
+    复用最近失败任务的两个 task_id 重新合成。
+
+    该入口只查询既有任务并下载结果，不会提交新的 Wan2.2 生成任务。
+    """
+    if _agent is None:
+        raise HTTPException(status_code=503, detail="Agent 未初始化")
+    state = _latest_recoverable_state()
+    if state is None:
+        raise HTTPException(
+            status_code=404,
+            detail="没有找到同时保存了两个 Wan2.2 task_id 的可恢复任务",
+        )
+    if state.session_id in _recovery_in_progress:
+        return {
+            "request_id": state.session_id,
+            "status": "running",
+            "message": "现有片段正在恢复合成，请勿重复操作",
+        }
+
+    _recovery_in_progress.add(state.session_id)
+    background_tasks.add_task(_run_video_recovery, state.session_id)
+    return {
+        "request_id": state.session_id,
+        "status": "accepted",
+        "message": "已开始复用现有 Wan2.2 任务；不会重新提交视频生成",
+    }
 
 
 @router.get("/status/{request_id}")
@@ -156,6 +239,7 @@ async def get_status(request_id: str):
         "error": safe_error_message(state.error) if state.error else None,
         "message": state.progress_message or None,
         "updated_at": state.updated_at,
+        "video_recoverable": _is_video_recoverable(state),
         "video_progress": {
             "stage": state.video_stage,
             "message": state.progress_message or None,
