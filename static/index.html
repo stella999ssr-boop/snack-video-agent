@@ -24,7 +24,7 @@ tailwind.config = {
 </script>
 <style>
   .star { color: #557760; }
-  body { color: #171A17; background: #FFFFFF; }
+  body { color: #171A17; background: #F6F7F4; }
   .stage-dot { position: relative; transition: all .25s ease; }
   .stage-dot::after { content: ''; position: absolute; inset: 6px; border-radius: 999px; background: #E7E9E4; }
   .stage-dot.active { background: rgba(85,119,96,.14); box-shadow: 0 0 0 5px rgba(85,119,96,.08); }
@@ -41,28 +41,30 @@ tailwind.config = {
   #stage-list { transition: box-shadow .25s ease; }
   #stage-list.progress-focus { border-radius: 16px; box-shadow: 0 0 0 3px rgba(85,119,96,.22); }
   .fade-in { animation: fadeIn 0.3s ease; }
-  .glass-panel { background: rgba(255,255,255,.78); border: 1px solid rgba(23,26,23,.08); box-shadow: 0 18px 60px rgba(23,26,23,.08); backdrop-filter: blur(18px); }
+  .glass-panel { background: rgba(255,255,255,.9); border: 1px solid rgba(23,26,23,.08); box-shadow: 0 18px 60px rgba(23,26,23,.07); backdrop-filter: blur(18px); }
   #generate-form-card { overflow: visible; position: relative; z-index: 10; }
   #generate-form-card select { position: relative; z-index: 30; min-width: 0; text-overflow: ellipsis; }
   .field { border: 1px solid #E7E9E4; background: rgba(255,255,255,.88); transition: border-color .2s, box-shadow .2s; }
   .field:focus, .field:focus-within { border-color: #557760; box-shadow: 0 0 0 4px rgba(85,119,96,.1); outline: none; }
-  .phone-shell { width: min(100%, 310px); aspect-ratio: 9 / 16; padding: 8px; border-radius: 34px; background: #171A17; box-shadow: 0 30px 70px rgba(0,0,0,.28); }
-  .phone-screen { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 27px; background: radial-gradient(circle at 50% 20%, #171A17 0, #171A17 48%, #171A17 100%); }
-  .phone-notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 999px; background: #171A17; z-index: 4; }
-  .soft-grid { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 28px 28px; }
-  #creative-workspace { background-color: #E7E9E4; color: #171A17; background-image: linear-gradient(rgba(23,26,23,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(23,26,23,.025) 1px, transparent 1px); }
-  #creative-workspace .workspace-header { border-color: rgba(23,26,23,.08); background: rgba(255,255,255,.35); }
+  .creative-layout { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  #creative-workspace { position: relative; min-height: 760px; background: #ECEEE9; color: #171A17; transition: background-color .25s ease, box-shadow .25s ease; }
+  #creative-workspace.workspace-idle { background: #ECEEE9; box-shadow: inset 0 0 0 1px rgba(23,26,23,.035); }
+  #creative-workspace .workspace-content { min-height: 760px; }
+  #creative-workspace .workspace-header { border-color: rgba(23,26,23,.08); background: rgba(255,255,255,.5); backdrop-filter: blur(16px); }
+  #creative-workspace .workspace-body { max-width: 900px; margin: 0 auto; }
   #creative-workspace [class*="text-white/"] { color: rgba(23,26,23,.55) !important; }
   #creative-workspace [class*="bg-white/"] { background-color: rgba(255,255,255,.58) !important; }
   #creative-workspace [class*="border-white/"] { border-color: rgba(23,26,23,.08) !important; }
   #creative-workspace .stage-item.active { background: rgba(255,255,255,.9) !important; box-shadow: 0 8px 24px rgba(23,26,23,.07); }
-  #creative-workspace .phone-screen { color: #FFFFFF; }
-  #creative-workspace .phone-screen [class*="text-white/"] { color: rgba(255,255,255,.48) !important; }
-  #creative-workspace .phone-screen [class*="bg-white/"] { background-color: rgba(255,255,255,.1) !important; }
+  .delivery-video { width: min(100%, 300px); aspect-ratio: 9 / 16; overflow: hidden; border-radius: 20px; background: #171A17; box-shadow: 0 22px 50px rgba(23,26,23,.18); }
   details > summary { list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
-  :fullscreen body, :fullscreen #page-generate { background: #FFFFFF; }
+  :fullscreen body, :fullscreen #page-generate { background: #F6F7F4; }
   :fullscreen #page-generate { overflow-y: auto; height: 100vh; max-width: none; padding-left: 32px; padding-right: 32px; }
+  @media (max-width: 1279px) {
+    .creative-layout { grid-template-columns: 1fr; }
+    #creative-workspace, #creative-workspace .workspace-content { min-height: 640px; }
+  }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
@@ -73,7 +75,7 @@ tailwind.config = {
   <div class="max-w-[1440px] mx-auto px-5 lg:px-8 flex items-center justify-between h-16">
     <div class="flex items-center gap-3">
       <span class="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20"><i class="fa fa-play"></i></span>
-      <div><span class="font-bold tracking-tight">Snack Studio</span><span class="hidden sm:inline text-white/35 text-xs ml-2">AI AD CREATOR</span></div>
+      <div><span class="font-bold tracking-tight">Snack Studio</span><span class="hidden sm:inline text-white/35 text-xs ml-2">AI AD CREATOR</span><span class="ml-2 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/45">1.1</span></div>
     </div>
     <div class="flex gap-1">
       <a href="#generate" class="nav-link px-4 py-2 rounded-xl text-sm font-medium text-white/65 hover:bg-white/10 hover:text-white transition" data-page="generate">
@@ -107,7 +109,7 @@ tailwind.config = {
     </div>
   </div>
 
-  <div class="grid grid-cols-1 xl:grid-cols-[440px_minmax(0,1fr)] gap-6 items-start">
+  <div class="creative-layout">
     <div class="glass-panel rounded-[24px] p-5 lg:p-6" id="generate-form-card">
       <div class="flex items-center justify-between mb-5">
         <div><p class="text-xs text-gray-400 mb-1">STEP 01</p><h2 class="text-xl font-bold">告诉我你要卖什么</h2></div>
@@ -181,25 +183,13 @@ tailwind.config = {
       </form>
     </div>
 
-    <div id="creative-workspace" class="rounded-[24px] overflow-hidden shadow-2xl shadow-black/10 min-h-[760px] soft-grid border border-black/[.06]">
-      <div class="workspace-header px-5 lg:px-7 py-5 border-b flex items-center justify-between">
-        <div><p class="text-xs text-white/40 mb-1">LIVE PREVIEW</p><h2 class="font-bold">素材生成工作台</h2></div>
-        <div class="flex gap-2"><span id="quality-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span><span id="compliance-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span></div>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-7 p-5 lg:p-7">
-        <div class="flex flex-col items-center">
-          <div class="phone-shell">
-            <div class="phone-screen flex items-center justify-center">
-              <div class="phone-notch"></div>
-              <div id="video-empty" class="text-center px-8"><div class="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center mb-4"><i class="fa fa-play text-primary text-xl"></i></div><p class="font-bold">你的广告将在这里出现</p><p class="text-xs leading-5 text-white/40 mt-2">10 秒 · 9:16 竖屏 · 双镜结构<br>真实商品图参与生成</p></div>
-              <div id="video-card" class="hidden absolute inset-0"><video id="result-video" class="w-full h-full object-cover" controls playsinline></video></div>
-            </div>
-          </div>
-          <div class="flex gap-2 mt-4"><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">10 秒</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/5 rounded-full text-[11px] text-white/50">720P</span></div>
-          <a id="download-video" class="hidden mt-3 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#557760] transition" download><i class="fa fa-download mr-1"></i>下载 10 秒成片</a>
+    <div id="creative-workspace" class="workspace-idle rounded-[24px] overflow-hidden">
+      <div id="workspace-content" class="workspace-content hidden">
+        <div class="workspace-header px-5 lg:px-7 py-5 border-b flex items-center justify-between">
+          <div><p class="text-xs text-primary font-bold tracking-wider mb-1">TASK WORKSPACE</p><h2 class="font-bold">广告素材任务</h2></div>
+          <div class="flex gap-2"><span id="quality-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span><span id="compliance-pill" class="hidden px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"></span></div>
         </div>
-
-        <div class="min-w-0">
+        <div class="workspace-body min-w-0 p-5 lg:p-8">
           <div id="progress-panel">
             <div class="flex items-start justify-between gap-3 mb-5">
               <div><p class="text-xs text-primary font-bold tracking-wider">AGENT PROCESS</p><p id="progress-message" class="text-sm text-white/55 mt-1">填写左侧信息，开始创建第一条素材</p></div>
@@ -260,6 +250,18 @@ tailwind.config = {
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="returnToVideoProgress()" class="px-3 py-2 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition"><i class="fa fa-arrow-left mr-1"></i>返回查看视频生成进度</button>
                 <button type="button" onclick="resetForm()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs"><i class="fa fa-refresh mr-1"></i>再生成一条</button>
+              </div>
+            </div>
+            <div id="video-card" class="hidden mb-5 rounded-2xl border border-black/[.07] bg-white/70 p-4 lg:p-5">
+              <div class="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] gap-5 items-start">
+                <div class="delivery-video"><video id="result-video" class="w-full h-full object-cover" controls playsinline></video></div>
+                <div class="min-w-0 md:pt-2">
+                  <p class="text-xs font-bold tracking-wider text-primary">FINAL VIDEO</p>
+                  <h4 class="text-lg font-bold mt-1">10 秒竖屏广告成片</h4>
+                  <p class="text-sm text-white/55 leading-6 mt-2">视频以普通素材卡交付，不再套用手机外框。你可以直接预览、下载，再结合下方脚本与投放信息继续使用。</p>
+                  <div class="flex flex-wrap gap-2 mt-4"><span class="px-2.5 py-1 bg-white/60 rounded-full text-[11px] text-white/50">10 秒</span><span class="px-2.5 py-1 bg-white/60 rounded-full text-[11px] text-white/50">9:16</span><span class="px-2.5 py-1 bg-white/60 rounded-full text-[11px] text-white/50">720P</span></div>
+                  <a id="download-video" class="hidden inline-flex mt-5 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#557760] transition" download><i class="fa fa-download mr-2"></i>下载 10 秒成片</a>
+                </div>
               </div>
             </div>
             <div class="space-y-4 max-h-[610px] overflow-y-auto pr-1">
@@ -580,8 +582,30 @@ function removeExtraImage(btn, url) {
   if (idx >= 0) extraImages.splice(idx, 1);
 }
 
+function openWorkspace(panel = 'progress') {
+  const workspace = document.getElementById('creative-workspace');
+  const content = document.getElementById('workspace-content');
+  const progress = document.getElementById('progress-panel');
+  const result = document.getElementById('result-area');
+  workspace.classList.remove('workspace-idle');
+  content.classList.remove('hidden');
+  if (panel === 'result') {
+    progress.classList.add('hidden');
+    result.classList.remove('hidden');
+  } else {
+    result.classList.add('hidden');
+    progress.classList.remove('hidden');
+  }
+}
+
+function setWorkspaceIdle() {
+  document.getElementById('creative-workspace').classList.add('workspace-idle');
+  document.getElementById('workspace-content').classList.add('hidden');
+}
+
 // ═══ 进度条 ═══
 function updateProgress(stage, serverMessage = '') {
+  openWorkspace('progress');
   const stageIndexes = { analyze:0, analyzing:0, searching:1, generating:2, rendering:3, interrupted:3, failed:3, quality_checking:4, compliance_checking:4, retrying:3, done:5 };
   const messages = {
     analyze:'正在理解商品信息与核心卖点…', analyzing:'正在理解商品信息与核心卖点…', searching:'正在检索同品类历史素材与策略…',
@@ -721,6 +745,7 @@ function renderLiveScript(preview, requestId, taskStage = '') {
 
 
 function returnToVideoProgress() {
+  openWorkspace('progress');
   const progress = document.getElementById('progress-panel');
   const result = document.getElementById('result-area');
   result.classList.add('hidden');
@@ -734,8 +759,7 @@ function returnToVideoProgress() {
 function showResultPanel() {
   const result = document.getElementById('result-area');
   if (result.dataset.ready !== 'true') return;
-  document.getElementById('progress-panel').classList.add('hidden');
-  result.classList.remove('hidden');
+  openWorkspace('result');
   result.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
@@ -851,6 +875,7 @@ document.getElementById('generate-form').addEventListener('submit', async e => {
     btn.innerHTML = '<i class="fa fa-play-circle"></i> 生成竖屏广告素材';
     return;
   }
+  updateProgress('analyze', '正在提交商品信息，准备创建广告任务…');
 
   const body = {
     product_name: fd.get('product_name'),
@@ -955,6 +980,7 @@ async function recoverLatestVideo() {
   const btn = document.getElementById('recover-video-btn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>正在读取已有任务';
+  updateProgress('rendering', '正在查询上一次已生成的 Wan 视频片段…');
   try {
     const resp = await fetch(`${API}/creative/recovery/latest`, {method:'POST'});
     const data = await resp.json();
@@ -990,6 +1016,7 @@ async function recoverManualVideo() {
   const btn = document.getElementById('manual-recover-btn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>正在读取旧任务';
+  updateProgress('rendering', '正在查询两个已有 task_id，不会提交新的生成任务…');
   try {
     const resp = await fetch(`${API}/creative/recovery/manual`, {
       method: 'POST',
@@ -1019,15 +1046,13 @@ async function recoverManualVideo() {
 function showResult(data) {
   const area = document.getElementById('result-area');
   area.dataset.ready = 'true';
-  area.classList.remove('hidden');
+  openWorkspace('result');
   document.getElementById('view-result-btn').classList.remove('hidden');
-  document.getElementById('progress-panel').classList.add('hidden');
   const r = data.result;
 
   // 视频
   if (r.video_url) {
     document.getElementById('video-card').classList.remove('hidden');
-    document.getElementById('video-empty').classList.add('hidden');
     document.getElementById('result-video').src = r.video_url;
     const download = document.getElementById('download-video');
     download.href = r.video_url;
@@ -1104,7 +1129,8 @@ function resetForm() {
   document.getElementById('video-task-list').replaceChildren();
   document.getElementById('progress-panel').classList.remove('hidden');
   document.getElementById('video-card').classList.add('hidden');
-  document.getElementById('video-empty').classList.remove('hidden');
+  document.getElementById('result-video').removeAttribute('src');
+  document.getElementById('result-video').load();
   document.getElementById('download-video').classList.add('hidden');
   document.getElementById('quality-pill').classList.add('hidden');
   document.getElementById('compliance-pill').classList.add('hidden');
@@ -1114,6 +1140,7 @@ function resetForm() {
   document.querySelectorAll('.stage-dot, .stage-item').forEach(d => { d.classList.remove('active','done'); });
   document.getElementById('progress-message').textContent = '填写左侧信息，开始创建第一条素材';
   document.getElementById('progress-percent').textContent = '0%';
+  setWorkspaceIdle();
 }
 
 // ═══ 页面 2：素材管理 ═══
